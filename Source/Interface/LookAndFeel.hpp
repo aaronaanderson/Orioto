@@ -26,7 +26,7 @@ public:
         setColour (juce::ToggleButton::ColourIds::tickColourId, accent);
     }
 
-    
+    static const juce::Colour getAccentColour() { return accent; }
     void drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height,
                                            float sliderPos,
                                            float minSliderPos,

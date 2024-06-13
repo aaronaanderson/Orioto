@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_dsp/juce_dsp.h>
 
 //==============================================================================
 class MainProcessor final : public juce::AudioProcessor
@@ -42,7 +43,13 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    juce::ValueTree& getState() { return valueTreeState.state; }
+    const juce::dsp::LookupTable<float>& getTransferFunction() { return transferFunction; }
 private:
-    //==============================================================================
+    juce::AudioProcessorValueTreeState valueTreeState;
+    juce::UndoManager undoManager;
+
+    juce::dsp::LookupTable<float> transferFunction;
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainProcessor)
 };

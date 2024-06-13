@@ -1,7 +1,8 @@
 #pragma once
 
 #include "MainProcessor.h"
-#include "LookAndFeel.hpp"
+#include "Interface/LookAndFeel.hpp"
+#include "Interface/TransferFunction.hpp"
 
 //==============================================================================
 class MainEditor final : public juce::AudioProcessorEditor
@@ -18,5 +19,6 @@ private:
     MainProcessor& processorRef;
     OriotoLookAndFeel lookAndFeel;
 
+    oi::TransferFunctionComponent transferFunction;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainEditor)
 };

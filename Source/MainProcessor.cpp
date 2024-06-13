@@ -10,7 +10,12 @@ MainProcessor::MainProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), 
+      valueTreeState (*this, &undoManager), 
+      transferFunction ([](size_t i) 
+          { 
+              return static_cast<float> (std::tanh (juce::jmap (static_cast<float> (i), 0.0f, 1023.0f, -1.0f, 1.0f) * 4.0f)); 
+          }, 1024)
 {
 }
 
