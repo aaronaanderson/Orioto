@@ -15,7 +15,6 @@ MainProcessor::MainProcessor()
       valueTreeState (*this, &undoManager, id::ORIOTO, {})
 {
     valueTreeState.state.addChild (CurveBranch::create(), -1, nullptr);
-    std::cout << valueTreeState.state.toXmlString() << std::endl;
 }
 
 MainProcessor::~MainProcessor()
@@ -179,11 +178,11 @@ void MainProcessor::getStateInformation (juce::MemoryBlock& destData)
 void MainProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     juce::ignoreUnused (data, sizeInBytes);
-    // std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+    std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
  
-    // if (xmlState.get() != nullptr)
-    //     if (xmlState->hasTagName (valueTreeState.state.getType()))
-    //         valueTreeState.replaceState (juce::ValueTree::fromXml (*xmlState));
+    if (xmlState.get() != nullptr)
+        if (xmlState->hasTagName (valueTreeState.state.getType()))
+            valueTreeState.replaceState (juce::ValueTree::fromXml (*xmlState));
 }
 
 //==============================================================================

@@ -6,11 +6,26 @@
 #include "Identifiers.h"
 struct NodeBranch
 {
-    static const juce::ValueTree create(juce::Point<float> position)
+    static const juce::ValueTree create(juce::Point<float> endPoint, 
+                                        juce::Point<float> controlOne, 
+                                        juce::Point<float> controlTwo)
     {
         juce::ValueTree nodeBranch (id::NODE);
-        nodeBranch.setProperty (id::x, position.x, nullptr);
-        nodeBranch.setProperty (id::y, position.y, nullptr);
+        
+        juce::ValueTree endPointBranch (id::endPoint);
+        endPointBranch.setProperty (id::x, endPoint.x, nullptr);
+        endPointBranch.setProperty (id::y, endPoint.y, nullptr);
+        nodeBranch.addChild (endPointBranch, -1, nullptr);
+
+        juce::ValueTree controlOneBranch (id::controlPoint1);
+        controlOneBranch.setProperty (id::x, controlOne.x, nullptr);
+        controlOneBranch.setProperty (id::y, controlOne.y, nullptr);
+        nodeBranch.addChild (controlOneBranch, -1, nullptr);
+
+        juce::ValueTree controlTwoBranch (id::controlPoint2);
+        controlTwoBranch.setProperty (id::x, controlTwo.x, nullptr);
+        controlTwoBranch.setProperty (id::y, controlTwo.y, nullptr);
+        nodeBranch.addChild (controlTwoBranch, -1, nullptr);
         return nodeBranch;
     }
 };
@@ -20,9 +35,9 @@ struct CurveBranch
     static const juce::ValueTree create()
     {
         juce::ValueTree curveBranch (id::CURVE);
-        curveBranch.addChild (NodeBranch::create ({-1.0f, -1.0f}), -1, nullptr);
-        curveBranch.addChild (NodeBranch::create ({0.0f, 0.0f}), -1, nullptr);
-        curveBranch.addChild (NodeBranch::create ({1.0f, 1.0f}), -1, nullptr);
+        curveBranch.addChild (NodeBranch::create ({-1.0f, -1.0f}, {0.0f, -0.2f}, {0.0f, 0.2f}), -1, nullptr);
+        curveBranch.addChild (NodeBranch::create ({0.0f, 0.0f}, {0.0f, -0.2f}, {0.0f, 0.2f}), -1, nullptr);
+        curveBranch.addChild (NodeBranch::create ({1.0f, 1.0f}, {0.0f, -0.2f}, {0.0f, 0.2f}), -1, nullptr);
 
         return curveBranch;
     }

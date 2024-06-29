@@ -6,35 +6,18 @@
 
 namespace oi
 {
-class ControlPoint
-{
-public:
-
-private:
-};
-
-class Node : public juce::Component
+class DraggablePoint : public juce::Component
 {
 public: 
-    Node (juce::ValueTree NodeBranch, juce::UndoManager& um) 
+    DraggablePoint (juce::ValueTree NodeBranch, juce::UndoManager& um) 
       : state (NodeBranch), 
         undoManager (um),
         x (state, id::x, &undoManager), 
         y (state, id::y, &undoManager)
     {
-        jassert (state.getType() == id::NODE);
-    }
-    void paint (juce::Graphics& g) override
-    {
-        auto laf = dynamic_cast<OriotoLookAndFeel*> (&getLookAndFeel());
-        jassert (laf != nullptr);
-
-        g.setColour (laf->getAccentColour());
-        auto b = getLocalBounds();
-        g.fillEllipse (b.toFloat());
-
-        g.setColour (laf->getBackgroundColour());
-        mouseOver ? g.fillEllipse (b.reduced (4).toFloat()) : g.fillEllipse (b.reduced (2).toFloat());
+        jassert (state.getType() == id::endPoint ||
+                 state.getType() == id::controlPoint1 ||
+                 state.getType() == id::controlPoint2);
     }
     void mouseEnter (const juce::MouseEvent& event) override 
     {
@@ -51,7 +34,7 @@ public:
     void mouseDrag (const juce::MouseEvent& event) override 
     { 
         juce::ignoreUnused (event); 
-        listener->isDragging (this, event);
+        informListeners (event);
     }
     void mouseDown (const juce::MouseEvent& event) override { juce::ignoreUnused (event); }
     const juce::Point<float> getPosition() const { return juce::Point<float> (x.get(), y.get()); }
@@ -65,19 +48,154 @@ public:
     }
     struct Listener
     {
-        virtual void isDragging (Node*, const juce::MouseEvent&) = 0;
+        virtual void onDrag (DraggablePoint*, const juce::MouseEvent&) = 0;
     };
-    void setListener (Listener* newListener) { listener = newListener; }
-private:
+    void addListener (Listener* newListener) { listeners.add (newListener); }
+protected:
     juce::ValueTree state;
     juce::UndoManager& undoManager;
     juce::CachedValue<float> x,y;
 
     bool mouseOver = false;
-    Listener* listener = nullptr;
+    juce::Array<Listener*> listeners;
+    void informListeners(const juce::MouseEvent& e) { for (auto l : listeners) l->onDrag (this, e); }
+};
+
+class EndPoint : public DraggablePoint
+{
+public:
+    EndPoint (juce::ValueTree endpointBranch, juce::UndoManager& um)
+      : DraggablePoint (endpointBranch, um)
+    {
+        jassert (state.getType() == id::endPoint);
+    }
+    void paint (juce::Graphics& g) override
+    {
+        auto laf = dynamic_cast<OriotoLookAndFeel*> (&getLookAndFeel());
+        jassert (laf != nullptr);
+
+        g.setColour (laf->getAccentColour());
+        auto b = getLocalBounds();
+        g.fillEllipse (b.toFloat());
+
+        g.setColour (laf->getBackgroundColour());
+        mouseOver ? g.fillEllipse (b.reduced (4).toFloat()) : g.fillEllipse (b.reduced (2).toFloat());
+    }
+};
+class ControlPoint : public DraggablePoint
+{
+public:
+    ControlPoint (juce::ValueTree endpointBranch, juce::UndoManager& um)
+      : DraggablePoint (endpointBranch, um)
+    {
+        jassert (state.getType() == id::controlPoint1 || 
+                 state.getType() == id::controlPoint2);
+    }
+    void paint (juce::Graphics& g) override
+    {
+        auto laf = dynamic_cast<OriotoLookAndFeel*> (&getLookAndFeel());
+        jassert (laf != nullptr);
+
+        g.setColour (laf->getAccentColour());
+        auto b = getLocalBounds();
+        g.fillEllipse (b.toFloat());
+
+        g.setColour (laf->getBackgroundColour());
+        mouseOver ? g.fillEllipse (b.reduced (4).toFloat()) : g.fillEllipse (b.reduced (2).toFloat());
+    }
+};
+static juce::Point<float> scaleToBounds (const juce::Point<float> normalized, const juce::Rectangle<int> localBounds)
+{
+    auto output = juce::Point<float>();
+    auto b = localBounds;
+    output.setX (juce::jmap (normalized.getX(), -1.0f, 1.0f, 0.0f, static_cast<float> (b.getWidth())));
+    output.setY (juce::jmap (normalized.getY(), -1.0f, 1.0f, static_cast<float> (b.getHeight()), 0.0f));
+    return output;
+}
+static juce::Point<float> scaleFromBounds (const juce::Point<float> boundsPosition, const juce::Rectangle<int> localBounds)
+{
+    auto output = juce::Point<float>();
+    auto b = localBounds;
+    output.setX (juce::jmap (boundsPosition.getX(), 0.0f, static_cast<float> (b.getWidth()), -1.0f, 1.0f));
+    output.setY (juce::jmap (boundsPosition.getY(), static_cast<float> (b.getHeight()), 0.0f, -1.0f, 1.0f));
+    return output;
+}
+class Node : public juce::Component, 
+             private juce::ValueTree::Listener
+{
+public:
+    Node (juce::ValueTree nodeBranch, juce::UndoManager& um)
+      : state (nodeBranch), 
+        undoManager (um), 
+        endPoint (nodeBranch.getChildWithName (id::endPoint), undoManager), 
+        controlPointOne (nodeBranch.getChildWithName (id::controlPoint1), undoManager), 
+        controlPointTwo (nodeBranch.getChildWithName (id::controlPoint2), undoManager)
+    {
+        jassert (state.getType() == id::NODE);
+        addAndMakeVisible (endPoint);
+        addAndMakeVisible (controlPointOne);
+        addAndMakeVisible (controlPointTwo);
+        state.addListener (this);
+    }
+    void resized() override
+    {
+        juce::Rectangle<int> ep (20, 20);
+        endPoint.setBounds (ep.withCentre (scaleToBounds (endPoint.getPosition(), getLocalBounds()).toInt()));
+        juce::Rectangle<int> cp (12, 12);
+        controlPointOne.setBounds (cp.withCentre (scaleToBounds (endPoint.getPosition() + controlPointOne.getPosition(), getLocalBounds()).toInt()));
+        controlPointTwo.setBounds (cp.withCentre (scaleToBounds (endPoint.getPosition() + controlPointTwo.getPosition(), getLocalBounds()).toInt()));
+    }
+    void paint (juce::Graphics& g) override
+    {
+        auto laf = dynamic_cast<OriotoLookAndFeel*> (&getLookAndFeel());
+        jassert (laf != nullptr);
+
+        g.setColour (laf->getAccentColour());
+        juce::Line<float> toControlPointOne (scaleToBounds (endPoint.getPosition() + controlPointOne.getPosition(), getLocalBounds()), 
+                                             scaleToBounds (endPoint.getPosition(), getLocalBounds()));
+        g.drawLine (toControlPointOne, 1.0f);  
+        juce::Line<float> toControlPointTwo (scaleToBounds (endPoint.getPosition() + controlPointTwo.getPosition(), getLocalBounds()), 
+                                             scaleToBounds (endPoint.getPosition(), getLocalBounds()));
+        g.drawLine (toControlPointTwo, 1.0f);
+
+    }
+    bool hitTest(int x, int y) override 
+    { 
+        juce::Point<int> hit (x, y);
+        if (endPoint.getBounds().contains (hit)) return true;
+        if (controlPointOne.getBounds().contains (hit)) return true;
+        if (controlPointTwo.getBounds().contains (hit)) return true;
+        return false;
+    }
+    void addListener (DraggablePoint::Listener* l)
+    {
+        endPoint.addListener (l);
+    }
+    const juce::Point<float> getPosition() const { return endPoint.getPosition(); }
+    void setPosition (juce::Point<float> position)
+    {
+        endPoint.setPosition (position);
+        std::cout << endPoint.getPosition().getY() << std::endl;
+    }
+    const EndPoint& getEndPoint() const { return endPoint; }
+private:
+    juce::ValueTree state;
+    juce::UndoManager& undoManager;
+
+    EndPoint endPoint;
+    ControlPoint controlPointOne, controlPointTwo;
+
+    void valueTreePropertyChanged (juce::ValueTree& tree,
+                                   const juce::Identifier& property) override
+    {
+        juce::ignoreUnused (property);
+        if (tree.getType() == id::endPoint) resized();
+        if (tree.getType() == id::controlPoint1) resized();
+        if (tree.getType() == id::controlPoint2) resized();
+    }
 };
 class Curve : public juce::Component, 
-              private Node::Listener
+              private DraggablePoint::Listener
 {
 public:
     Curve (juce::ValueTree curveBranch, juce::UndoManager& um) 
@@ -89,7 +207,7 @@ public:
             addAndMakeVisible (nodes.add (new Node (state.getChild (i), undoManager)));
         
         for (auto* n : nodes)
-            n->setListener (this);
+            n->addListener (this);
     }
     void paint (juce::Graphics& g) override
     {
@@ -99,11 +217,11 @@ public:
 
         g.setColour (laf->getAccentColour());
         juce::Path curvePath;
-        auto initialPoint = scaleToBounds (nodes.getFirst()->getPosition());
+        auto initialPoint = scaleToBounds (nodes.getFirst()->getPosition(), getLocalBounds());
         juce::Point<float> terminalPoint;
         for (const auto* node : nodes)
         {
-            terminalPoint = scaleToBounds (node->getPosition());
+            terminalPoint = scaleToBounds (node->getPosition(), getLocalBounds());
             auto l = juce::Line<float>(initialPoint, terminalPoint);
             curvePath.addLineSegment (l, 2.0f);
             initialPoint = terminalPoint;
@@ -112,43 +230,34 @@ public:
     }
     void resized() override
     {
-        juce::Rectangle<int> n (20, 20);
+        // juce::Rectangle<int> n (20, 20);
+        // for (auto* node : nodes)
+        //     node->setBounds (n.withCentre (scaleToBounds (node->getPosition(), getLocalBounds()).toInt()));
         for (auto* node : nodes)
-            node->setBounds (n.withCentre (scaleToBounds (node->getPosition()).toInt()));
+            node->setBounds (getLocalBounds());
     }
 private:
     juce::ValueTree state;
     juce::UndoManager& undoManager;
     juce::OwnedArray<Node> nodes;
     
-    void isDragging (Node* node, const juce::MouseEvent& event) override
+    void onDrag (DraggablePoint* draggablePoint, const juce::MouseEvent& event) override
     {
-        auto adjustedEvent = event.getEventRelativeTo (this);
-        auto newPosition = scaleFromBounds (adjustedEvent.getPosition().toFloat());
-        if (node == nodes.getFirst() || node == nodes.getLast()) 
-            newPosition.setX (node->getPosition().getX());
-
-        newPosition.x = juce::jlimit (-1.0f, 1.0f, newPosition.getX());
-        newPosition.y = juce::jlimit (-1.0f, 1.0f, newPosition.getY());
-        node->setPosition (newPosition);
-        resized(); repaint();
-    }
-
-    juce::Point<float> scaleToBounds (juce::Point<float> normalized)
-    {
-        auto output = juce::Point<float>();
-        auto b = getLocalBounds();
-        output.setX (juce::jmap (normalized.getX(), -1.0f, 1.0f, 0.0f, static_cast<float> (b.getWidth())));
-        output.setY (juce::jmap (normalized.getY(), -1.0f, 1.0f, static_cast<float> (b.getHeight()), 0.0f));
-        return output;
-    }
-    juce::Point<float> scaleFromBounds (juce::Point<float> boundsPosition)
-    {
-        auto output = juce::Point<float>();
-        auto b = getLocalBounds();
-        output.setX (juce::jmap (boundsPosition.getX(), 0.0f, static_cast<float> (b.getWidth()), -1.0f, 1.0f));
-        output.setY (juce::jmap (boundsPosition.getY(), static_cast<float> (b.getHeight()), 0.0f, -1.0f, 1.0f));
-        return output;
+        if (dynamic_cast<EndPoint*> (draggablePoint) != nullptr)
+        {
+            auto adjustedEvent = event.getEventRelativeTo (this);
+            auto newPosition = scaleFromBounds (adjustedEvent.getPosition().toFloat(), getLocalBounds());
+            if (draggablePoint == &nodes.getFirst()->getEndPoint() || 
+                draggablePoint == &nodes.getLast()->getEndPoint()) 
+            {
+                newPosition.setX (draggablePoint->getPosition().getX());
+            }
+    
+            newPosition.x = juce::jlimit (-1.0f, 1.0f, newPosition.getX());
+            newPosition.y = juce::jlimit (-1.0f, 1.0f, newPosition.getY());
+            draggablePoint->setPosition (newPosition);
+            repaint(); 
+        }
     }
 };
 }
