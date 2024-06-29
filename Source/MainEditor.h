@@ -2,7 +2,7 @@
 
 #include "MainProcessor.h"
 #include "Interface/LookAndFeel.hpp"
-#include "Interface/TransferFunction.hpp"
+#include "Interface/CurveEditor.h"
 
 //==============================================================================
 class MainEditor final : public juce::AudioProcessorEditor
@@ -19,6 +19,6 @@ private:
     MainProcessor& processorRef;
     OriotoLookAndFeel lookAndFeel;
 
-    oi::TransferFunctionComponent transferFunction;
+    oi::Curve curveEditor;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainEditor)
 };

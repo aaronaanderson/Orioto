@@ -1,6 +1,7 @@
 #include "MainProcessor.h"
 #include "MainEditor.h"
-
+#include "Identifiers.h"
+#include "DefaultTreeGenerator.h"
 //==============================================================================
 MainProcessor::MainProcessor()
      : AudioProcessor (BusesProperties()
@@ -11,12 +12,10 @@ MainProcessor::MainProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ), 
-      valueTreeState (*this, &undoManager), 
-      transferFunction ([](size_t i) 
-          { 
-              return static_cast<float> (std::tanh (juce::jmap (static_cast<float> (i), 0.0f, 1023.0f, -1.0f, 1.0f) * 4.0f)); 
-          }, 1024)
+      valueTreeState (*this, &undoManager, id::ORIOTO, {})
 {
+    valueTreeState.state.addChild (CurveBranch::create(), -1, nullptr);
+    std::cout << valueTreeState.state.toXmlString() << std::endl;
 }
 
 MainProcessor::~MainProcessor()
@@ -172,17 +171,18 @@ juce::AudioProcessorEditor* MainProcessor::createEditor()
 //==============================================================================
 void MainProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
-    juce::ignoreUnused (destData);
+    auto state = valueTreeState.copyState();
+    std::unique_ptr<juce::XmlElement> xml (state.createXml());
+    copyXmlToBinary (*xml, destData);
 }
 
 void MainProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
-    juce::ignoreUnused (data, sizeInBytes);
+    std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
+ 
+    if (xmlState.get() != nullptr)
+        if (xmlState->hasTagName (valueTreeState.state.getType()))
+            valueTreeState.replaceState (juce::ValueTree::fromXml (*xmlState));
 }
 
 //==============================================================================

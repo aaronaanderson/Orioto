@@ -44,12 +44,9 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::ValueTree& getState() { return valueTreeState.state; }
-    const juce::dsp::LookupTable<float>& getTransferFunction() { return transferFunction; }
 private:
     juce::AudioProcessorValueTreeState valueTreeState;
     juce::UndoManager undoManager;
-
-    juce::dsp::LookupTable<float> transferFunction;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainProcessor)
 };

@@ -4,13 +4,13 @@
 //==============================================================================
 MainEditor::MainEditor (MainProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p), 
-      transferFunction (processorRef.getTransferFunction())
+      curveEditor (processorRef.getState().getChildWithName (id::CURVE))
 {
     juce::ignoreUnused (processorRef);
 
     setLookAndFeel (&lookAndFeel);
-
-    addAndMakeVisible (transferFunction);
+    
+    addAndMakeVisible (curveEditor);
 
     setResizable (true, false);
     setResizeLimits (300, 200, 2400, 1600);
@@ -19,6 +19,7 @@ MainEditor::MainEditor (MainProcessor& p)
 
 MainEditor::~MainEditor()
 {
+    setLookAndFeel (nullptr);
 }
 
 //==============================================================================
@@ -32,5 +33,5 @@ void MainEditor::resized()
     auto b = getLocalBounds();
     auto quarterWidth = b.getWidth() / 4;
     b.removeFromLeft (quarterWidth);
-    transferFunction.setBounds (b.removeFromLeft (quarterWidth * 2));
+    curveEditor.setBounds (b.removeFromLeft (quarterWidth * 2));
 }

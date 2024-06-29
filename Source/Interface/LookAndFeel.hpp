@@ -27,6 +27,8 @@ public:
     }
 
     static const juce::Colour getAccentColour() { return accent; }
+    static const juce::Colour getBaseColour() { return base; }
+    static const juce::Colour getBackgroundColour() { return background; }
     void drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height,
                                            float sliderPos,
                                            float minSliderPos,
