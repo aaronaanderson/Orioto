@@ -44,6 +44,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::ValueTree& getState() { return valueTreeState.state; }
+    juce::UndoManager& getUndoManager() { return undoManager; }
 private:
     juce::AudioProcessorValueTreeState valueTreeState;
     juce::UndoManager undoManager;

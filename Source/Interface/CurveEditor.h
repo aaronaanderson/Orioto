@@ -16,11 +16,13 @@ private:
 class Node : public juce::Component
 {
 public: 
-    Node (juce::ValueTree NodeBranch) 
-      : state (NodeBranch)
+    Node (juce::ValueTree NodeBranch, juce::UndoManager& um) 
+      : state (NodeBranch), 
+        undoManager (um),
+        x (state, id::x, &undoManager), 
+        y (state, id::y, &undoManager)
     {
         jassert (state.getType() == id::NODE);
-        initializeState();
     }
     void paint (juce::Graphics& g) override
     {
@@ -33,7 +35,6 @@ public:
 
         g.setColour (laf->getBackgroundColour());
         mouseOver ? g.fillEllipse (b.reduced (4).toFloat()) : g.fillEllipse (b.reduced (2).toFloat());
-        
     }
     void mouseEnter (const juce::MouseEvent& event) override 
     {
@@ -53,12 +54,14 @@ public:
         listener->isDragging (this, event);
     }
     void mouseDown (const juce::MouseEvent& event) override { juce::ignoreUnused (event); }
-    const juce::Point<float> getPosition() const { return position; }
+    const juce::Point<float> getPosition() const { return juce::Point<float> (x.get(), y.get()); }
     void setPosition (juce::Point<float> newPosition)
     {
         jassert (newPosition.x >= -1.0f && newPosition.x <= 1.0f &&
                  newPosition.y >= -1.0f && newPosition.y <= 1.0f);
-        position = newPosition;
+        // position = newPosition;
+        x.setValue (newPosition.getX(), &undoManager);
+        y.setValue (newPosition.getY(), &undoManager);
     }
     struct Listener
     {
@@ -67,26 +70,23 @@ public:
     void setListener (Listener* newListener) { listener = newListener; }
 private:
     juce::ValueTree state;
-    juce::Point<float> position;
+    juce::UndoManager& undoManager;
+    juce::CachedValue<float> x,y;
+
     bool mouseOver = false;
     Listener* listener = nullptr;
-
-    void initializeState()
-    {
-        position.setX (state.getProperty (id::x));
-        position.setY (state.getProperty (id::y));
-    }
 };
 class Curve : public juce::Component, 
               private Node::Listener
 {
 public:
-    Curve (juce::ValueTree curveBranch) 
-      : state (curveBranch)
+    Curve (juce::ValueTree curveBranch, juce::UndoManager& um) 
+      : state (curveBranch), 
+        undoManager (um)
     {
         jassert (state.getType() == id::CURVE);
         for (int i = 0; i < state.getNumChildren(); i++)
-            addAndMakeVisible (nodes.add (new Node (state.getChild (i))));
+            addAndMakeVisible (nodes.add (new Node (state.getChild (i), undoManager)));
         
         for (auto* n : nodes)
             n->setListener (this);
@@ -118,12 +118,19 @@ public:
     }
 private:
     juce::ValueTree state;
+    juce::UndoManager& undoManager;
     juce::OwnedArray<Node> nodes;
     
     void isDragging (Node* node, const juce::MouseEvent& event) override
     {
         auto adjustedEvent = event.getEventRelativeTo (this);
-        node->setPosition (scaleFromBounds (adjustedEvent.getPosition().toFloat()));
+        auto newPosition = scaleFromBounds (adjustedEvent.getPosition().toFloat());
+        if (node == nodes.getFirst() || node == nodes.getLast()) 
+            newPosition.setX (node->getPosition().getX());
+
+        newPosition.x = juce::jlimit (-1.0f, 1.0f, newPosition.getX());
+        newPosition.y = juce::jlimit (-1.0f, 1.0f, newPosition.getY());
+        node->setPosition (newPosition);
         resized(); repaint();
     }
 

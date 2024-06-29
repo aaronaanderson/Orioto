@@ -4,7 +4,7 @@
 //==============================================================================
 MainEditor::MainEditor (MainProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p), 
-      curveEditor (processorRef.getState().getChildWithName (id::CURVE))
+      curveEditor (processorRef.getState().getChildWithName (id::CURVE), processorRef.getUndoManager())
 {
     juce::ignoreUnused (processorRef);
 
