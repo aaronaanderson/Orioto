@@ -178,6 +178,7 @@ void MainProcessor::getStateInformation (juce::MemoryBlock& destData)
 
 void MainProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
+    juce::ignoreUnused (data, sizeInBytes);
     std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
  
     if (xmlState.get() != nullptr)

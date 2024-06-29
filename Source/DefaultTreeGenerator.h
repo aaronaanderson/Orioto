@@ -20,8 +20,8 @@ struct CurveBranch
     static const juce::ValueTree create()
     {
         juce::ValueTree curveBranch (id::CURVE);
-        curveBranch.addChild (NodeBranch::create ({-0.0f, -1.0f}), -1, nullptr);
-        curveBranch.addChild (NodeBranch::create ({0.5f, 0.0f}), -1, nullptr);
+        curveBranch.addChild (NodeBranch::create ({-1.0f, -1.0f}), -1, nullptr);
+        curveBranch.addChild (NodeBranch::create ({0.0f, 0.0f}), -1, nullptr);
         curveBranch.addChild (NodeBranch::create ({1.0f, 1.0f}), -1, nullptr);
 
         return curveBranch;
