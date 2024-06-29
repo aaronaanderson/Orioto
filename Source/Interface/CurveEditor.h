@@ -40,8 +40,6 @@ public:
     const juce::Point<float> getPosition() const { return juce::Point<float> (x.get(), y.get()); }
     void setPosition (juce::Point<float> newPosition)
     {
-        jassert (newPosition.x >= -1.0f && newPosition.x <= 1.0f &&
-                 newPosition.y >= -1.0f && newPosition.y <= 1.0f);
         // position = newPosition;
         x.setValue (newPosition.getX(), &undoManager);
         y.setValue (newPosition.getY(), &undoManager);
@@ -82,11 +80,13 @@ public:
         mouseOver ? g.fillEllipse (b.reduced (4).toFloat()) : g.fillEllipse (b.reduced (2).toFloat());
     }
 };
+class Node;
 class ControlPoint : public DraggablePoint
 {
 public:
-    ControlPoint (juce::ValueTree endpointBranch, juce::UndoManager& um)
-      : DraggablePoint (endpointBranch, um)
+    ControlPoint (Node& node, juce::ValueTree controlPointBranch, juce::UndoManager& um)
+      : DraggablePoint (controlPointBranch, um), 
+        parentNode (node)
     {
         jassert (state.getType() == id::controlPoint1 || 
                  state.getType() == id::controlPoint2);
@@ -103,6 +103,9 @@ public:
         g.setColour (laf->getBackgroundColour());
         mouseOver ? g.fillEllipse (b.reduced (4).toFloat()) : g.fillEllipse (b.reduced (2).toFloat());
     }
+    Node& getNode() { return parentNode; }
+private:
+    Node& parentNode;
 };
 static juce::Point<float> scaleToBounds (const juce::Point<float> normalized, const juce::Rectangle<int> localBounds)
 {
@@ -128,8 +131,8 @@ public:
       : state (nodeBranch), 
         undoManager (um), 
         endPoint (nodeBranch.getChildWithName (id::endPoint), undoManager), 
-        controlPointOne (nodeBranch.getChildWithName (id::controlPoint1), undoManager), 
-        controlPointTwo (nodeBranch.getChildWithName (id::controlPoint2), undoManager)
+        controlPointOne (*this, nodeBranch.getChildWithName (id::controlPoint1), undoManager), 
+        controlPointTwo (*this, nodeBranch.getChildWithName (id::controlPoint2), undoManager)
     {
         jassert (state.getType() == id::NODE);
         addAndMakeVisible (endPoint);
@@ -170,14 +173,15 @@ public:
     void addListener (DraggablePoint::Listener* l)
     {
         endPoint.addListener (l);
+        controlPointOne.addListener (l);
+        controlPointTwo.addListener (l);
     }
     const juce::Point<float> getPosition() const { return endPoint.getPosition(); }
     void setPosition (juce::Point<float> position)
     {
         endPoint.setPosition (position);
-        std::cout << endPoint.getPosition().getY() << std::endl;
     }
-    const EndPoint& getEndPoint() const { return endPoint; }
+    EndPoint& getEndPoint() { return endPoint; }
 private:
     juce::ValueTree state;
     juce::UndoManager& undoManager;
@@ -257,6 +261,16 @@ private:
             newPosition.y = juce::jlimit (-1.0f, 1.0f, newPosition.getY());
             draggablePoint->setPosition (newPosition);
             repaint(); 
+        }else if (dynamic_cast<ControlPoint*> (draggablePoint) != nullptr)
+        {
+            auto adjustedEvent = event.getEventRelativeTo (this);
+            auto newPosition = scaleFromBounds (adjustedEvent.getPosition().toFloat(), getLocalBounds());
+            
+            auto* controlPoint = dynamic_cast<ControlPoint*> (draggablePoint);
+            auto& node = controlPoint->getNode();
+            newPosition -= node.getEndPoint().getPosition();
+            draggablePoint->setPosition (newPosition);
+            repaint();         
         }
     }
 };
