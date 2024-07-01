@@ -65,12 +65,13 @@ protected:
     bool mouseOver = false;
     Listener* listener;
 };
-
+class Node;
 class EndPoint : public DraggablePoint
 {
 public:
-    EndPoint (juce::ValueTree endpointBranch, juce::UndoManager& um)
-      : DraggablePoint (endpointBranch, um)
+    EndPoint (Node& parent, juce::ValueTree endpointBranch, juce::UndoManager& um)
+      : DraggablePoint (endpointBranch, um), 
+        parentNode (parent)
     {
         jassert (state.getType() == id::endPoint);
     }
@@ -86,8 +87,11 @@ public:
         g.setColour (laf->getBackgroundColour());
         mouseOver ? g.fillEllipse (b.reduced (4).toFloat()) : g.fillEllipse (b.reduced (2).toFloat());
     }
+    Node& getNode() { return parentNode; }
+private:
+    Node& parentNode;
 };
-class Node;
+
 class ControlPoint : public DraggablePoint
 {
 public:
@@ -137,7 +141,7 @@ public:
     Node (juce::ValueTree nodeBranch, juce::UndoManager& um)
       : state (nodeBranch), 
         undoManager (um), 
-        endPoint (nodeBranch.getChildWithName (id::endPoint), undoManager), 
+        endPoint (*this, nodeBranch.getChildWithName (id::endPoint), undoManager), 
         controlPointOne (*this, nodeBranch.getChildWithName (id::controlPoint1), undoManager), 
         controlPointTwo (*this, nodeBranch.getChildWithName (id::controlPoint2), undoManager)
     {
@@ -290,7 +294,20 @@ private:
             {
                 newPosition.setX (draggablePoint->getPosition().getX());
             }
-    
+            auto* endPoint = dynamic_cast<EndPoint*> (draggablePoint);
+            auto& node = endPoint->getNode();
+            auto nodeIndex = nodes.indexOf (&node);
+            if (nodeIndex > 0 && nodeIndex < nodes.size() - 1)
+            {
+                auto* preceedingNode = nodes[nodeIndex - 1];
+                auto leftBounds = preceedingNode->getEndPoint().getPosition().getX() +
+                                  preceedingNode->getControlPointTwo().getPosition().getX();
+                if (newPosition.getX() < leftBounds) newPosition.setX (leftBounds);
+                auto* proceedingNode = nodes[nodeIndex + 1];
+                auto rightBounds = proceedingNode->getEndPoint().getPosition().getX() + 
+                                   proceedingNode->getControlPointOne().getPosition().getX();
+                if (newPosition.getX() > rightBounds) newPosition.setX (rightBounds);
+            }
             newPosition.x = juce::jlimit (-1.0f, 1.0f, newPosition.getX());
             newPosition.y = juce::jlimit (-1.0f, 1.0f, newPosition.getY());
             draggablePoint->setPosition (newPosition);
