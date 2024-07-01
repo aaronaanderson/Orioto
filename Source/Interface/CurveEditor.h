@@ -297,12 +297,14 @@ private:
             auto* endPoint = dynamic_cast<EndPoint*> (draggablePoint);
             auto& node = endPoint->getNode();
             auto nodeIndex = nodes.indexOf (&node);
+            // bind endpointX to neighboring controlPoints
             if (nodeIndex > 0 && nodeIndex < nodes.size() - 1)
             {
                 auto* preceedingNode = nodes[nodeIndex - 1];
                 auto leftBounds = preceedingNode->getEndPoint().getPosition().getX() +
                                   preceedingNode->getControlPointTwo().getPosition().getX();
                 if (newPosition.getX() < leftBounds) newPosition.setX (leftBounds);
+                
                 auto* proceedingNode = nodes[nodeIndex + 1];
                 auto rightBounds = proceedingNode->getEndPoint().getPosition().getX() + 
                                    proceedingNode->getControlPointOne().getPosition().getX();
@@ -321,14 +323,24 @@ private:
             auto* controlPoint = dynamic_cast<ControlPoint*> (draggablePoint);
             auto& node = controlPoint->getNode();
             newPosition -= node.getEndPoint().getPosition();
+            // don't allow control points to cross endPointX
+            auto nodeIndex = nodes.indexOf (&node);
             if (controlPoint == &node.getControlPointOne())
             {
-                if (newPosition.getX() > 0.0f)
-                    newPosition = {0.0f, controlPoint->getPosition().getY()};
+                if (newPosition.getX() > 0.0f) newPosition = {0.0f, controlPoint->getPosition().getY()};
+                auto* preceedingNode = nodes[nodeIndex - 1];
+                float leftGapMax = node.getEndPoint().getPosition().getX() - preceedingNode->getEndPoint().getPosition().getX();
+                if (newPosition.getX() < -leftGapMax)
+                    newPosition = {-leftGapMax, newPosition.getY()};
             } else { // controlPointTwo
-                if (newPosition.getX() < 0.0f)
-                    newPosition = {0.0f, controlPoint->getPosition().getY()};
+                if (newPosition.getX() < 0.0f) newPosition = {0.0f, controlPoint->getPosition().getY()};
+
+                auto* proceedingNode = nodes[nodeIndex + 1];
+                float rightGapMax = proceedingNode->getEndPoint().getPosition().getX() - node.getEndPoint().getPosition().getX();
+                if (newPosition.getX() > rightGapMax)
+                    newPosition = {rightGapMax, newPosition.getY()};
             }
+
             draggablePoint->setPosition (newPosition);
             draggingPosition = newPosition + node.getEndPoint().getPosition();
             repaint();         
