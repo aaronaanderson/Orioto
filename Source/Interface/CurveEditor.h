@@ -207,7 +207,7 @@ private:
         {
             if (property == id::x || property == id::y)
                 controlPointOne.setPosition (mirrorPosition (controlPointTwo.getPosition()));
-                
+
             resized();
         } 
     }
@@ -289,13 +289,11 @@ private:
             newPosition -= node.getEndPoint().getPosition();
             if (controlPoint == &node.getControlPointOne())
             {
-                if (newPosition.getX() > node.getEndPoint().getPosition().getX())
-                    newPosition = {node.getEndPoint().getPosition().getX(), 
-                                   controlPoint->getPosition().getY()};
+                if (newPosition.getX() > 0.0f)
+                    newPosition = {0.0f, controlPoint->getPosition().getY()};
             } else { // controlPointTwo
-                if (newPosition.getX() < node.getEndPoint().getPosition().getX())
-                    newPosition = {node.getEndPoint().getPosition().getX(), 
-                                   controlPoint->getPosition().getY()};
+                if (newPosition.getX() < 0.0f)
+                    newPosition = {0.0f, controlPoint->getPosition().getY()};
             }
             draggablePoint->setPosition (newPosition);
             repaint();         
