@@ -196,8 +196,25 @@ private:
     {
         juce::ignoreUnused (property);
         if (tree.getType() == id::endPoint) resized();
-        if (tree.getType() == id::controlPoint1) resized();
-        if (tree.getType() == id::controlPoint2) resized();
+        if (tree.getType() == id::controlPoint1)
+        {
+            if (property == id::x || property == id::y)
+                controlPointTwo.setPosition (mirrorPosition (controlPointOne.getPosition()));
+            
+            resized();
+        } 
+        if (tree.getType() == id::controlPoint2)
+        {
+            if (property == id::x || property == id::y)
+                controlPointOne.setPosition (mirrorPosition (controlPointTwo.getPosition()));
+                
+            resized();
+        } 
+    }
+
+    juce::Point<float> mirrorPosition (const juce::Point<float> positionToMirror)
+    {
+        return {positionToMirror.getX() * -1.0f, positionToMirror.getY() * -1.0f};
     }
 };
 class Curve : public juce::Component, 
