@@ -34,29 +34,36 @@ public:
     void mouseDrag (const juce::MouseEvent& event) override 
     { 
         juce::ignoreUnused (event); 
-        informListeners (event);
+        listener->isDragging = true;
+        listener->onDrag (this, event);
     }
     void mouseDown (const juce::MouseEvent& event) override { juce::ignoreUnused (event); }
+    void mouseUp (const juce::MouseEvent& event) override 
+    {
+        juce::ignoreUnused (event);
+        listener->isDragging = false;
+        listener->onDragEnd();
+    }
     const juce::Point<float> getPosition() const { return juce::Point<float> (x.get(), y.get()); }
     void setPosition (juce::Point<float> newPosition)
     {
-        // position = newPosition;
         x.setValue (newPosition.getX(), &undoManager);
         y.setValue (newPosition.getY(), &undoManager);
     }
     struct Listener
     {
         virtual void onDrag (DraggablePoint*, const juce::MouseEvent&) = 0;
+        virtual void onDragEnd () = 0;
+        bool isDragging = false;
     };
-    void addListener (Listener* newListener) { listeners.add (newListener); }
+    void setListener (Listener* newListener) { listener = newListener; }
 protected:
     juce::ValueTree state;
     juce::UndoManager& undoManager;
     juce::CachedValue<float> x,y;
 
     bool mouseOver = false;
-    juce::Array<Listener*> listeners;
-    void informListeners(const juce::MouseEvent& e) { for (auto l : listeners) l->onDrag (this, e); }
+    Listener* listener;
 };
 
 class EndPoint : public DraggablePoint
@@ -172,9 +179,9 @@ public:
     }
     void addListener (DraggablePoint::Listener* l)
     {
-        endPoint.addListener (l);
-        controlPointOne.addListener (l);
-        controlPointTwo.addListener (l);
+        endPoint.setListener (l);
+        controlPointOne.setListener (l);
+        controlPointTwo.setListener (l);
     }
     const juce::Point<float> getPosition() const { return endPoint.getPosition(); }
     void setPosition (juce::Point<float> position)
@@ -252,6 +259,14 @@ public:
             previousControlPoint = scaleToBounds (nodes[i]->getEndPoint().getPosition() + nodes[i]->getControlPointTwo().getPosition(), getLocalBounds());
         }
         g.strokePath (curvePath.createPathWithRoundedCorners (2.0f), juce::PathStrokeType (2.0f));
+
+        if (isDragging)
+        {
+            g.setColour (laf->getBackgroundColour());
+            auto cursorPosition = scaleToBounds (draggingPosition, getLocalBounds());
+            g.drawLine (cursorPosition.getX(), 0.0f, cursorPosition.getX(), static_cast<float> (getLocalBounds().getHeight()));
+            g.drawLine (0.0f, cursorPosition.getY(), static_cast<float> (getLocalBounds().getWidth()), cursorPosition.getY());
+        }
     }
     void resized() override
     {
@@ -263,6 +278,7 @@ private:
     juce::UndoManager& undoManager;
     juce::OwnedArray<Node> nodes;
     
+    juce::Point<float> draggingPosition;
     void onDrag (DraggablePoint* draggablePoint, const juce::MouseEvent& event) override
     {
         if (dynamic_cast<EndPoint*> (draggablePoint) != nullptr)
@@ -278,6 +294,7 @@ private:
             newPosition.x = juce::jlimit (-1.0f, 1.0f, newPosition.getX());
             newPosition.y = juce::jlimit (-1.0f, 1.0f, newPosition.getY());
             draggablePoint->setPosition (newPosition);
+            draggingPosition = newPosition;
             repaint(); 
         }else if (dynamic_cast<ControlPoint*> (draggablePoint) != nullptr)
         {
@@ -296,8 +313,10 @@ private:
                     newPosition = {0.0f, controlPoint->getPosition().getY()};
             }
             draggablePoint->setPosition (newPosition);
+            draggingPosition = newPosition + node.getEndPoint().getPosition();
             repaint();         
         }
     }
+    void onDragEnd() override { repaint(); }
 };
 }
