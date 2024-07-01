@@ -181,6 +181,8 @@ public:
     {
         endPoint.setPosition (position);
     }
+    ControlPoint& getControlPointOne() { return controlPointOne; }
+    ControlPoint& getControlPointTwo() { return controlPointTwo; }
     EndPoint& getEndPoint() { return endPoint; }
 private:
     juce::ValueTree state;
@@ -222,21 +224,20 @@ public:
         g.setColour (laf->getAccentColour());
         juce::Path curvePath;
         auto initialPoint = scaleToBounds (nodes.getFirst()->getPosition(), getLocalBounds());
-        juce::Point<float> terminalPoint;
-        for (const auto* node : nodes)
+
+        curvePath.startNewSubPath (initialPoint);
+        auto previousControlPoint = scaleToBounds (nodes.getFirst()->getEndPoint().getPosition() + nodes.getFirst()->getControlPointTwo().getPosition(), getLocalBounds());
+        for (int i = 1; i < nodes.size(); i++)
         {
-            terminalPoint = scaleToBounds (node->getPosition(), getLocalBounds());
-            auto l = juce::Line<float>(initialPoint, terminalPoint);
-            curvePath.addLineSegment (l, 2.0f);
-            initialPoint = terminalPoint;
+            curvePath.cubicTo (previousControlPoint,
+                               scaleToBounds (nodes[i]->getEndPoint().getPosition() + nodes[i]->getControlPointOne().getPosition(), getLocalBounds()),
+                               scaleToBounds (nodes[i]->getEndPoint().getPosition(), getLocalBounds()));
+            previousControlPoint = scaleToBounds (nodes[i]->getEndPoint().getPosition() + nodes[i]->getControlPointTwo().getPosition(), getLocalBounds());
         }
         g.strokePath (curvePath.createPathWithRoundedCorners (2.0f), juce::PathStrokeType (2.0f));
     }
     void resized() override
     {
-        // juce::Rectangle<int> n (20, 20);
-        // for (auto* node : nodes)
-        //     node->setBounds (n.withCentre (scaleToBounds (node->getPosition(), getLocalBounds()).toInt()));
         for (auto* node : nodes)
             node->setBounds (getLocalBounds());
     }
@@ -269,6 +270,16 @@ private:
             auto* controlPoint = dynamic_cast<ControlPoint*> (draggablePoint);
             auto& node = controlPoint->getNode();
             newPosition -= node.getEndPoint().getPosition();
+            if (controlPoint == &node.getControlPointOne())
+            {
+                if (newPosition.getX() > node.getEndPoint().getPosition().getX())
+                    newPosition = {node.getEndPoint().getPosition().getX(), 
+                                   controlPoint->getPosition().getY()};
+            } else { // controlPointTwo
+                if (newPosition.getX() < node.getEndPoint().getPosition().getX())
+                    newPosition = {node.getEndPoint().getPosition().getX(), 
+                                   controlPoint->getPosition().getY()};
+            }
             draggablePoint->setPosition (newPosition);
             repaint();         
         }
