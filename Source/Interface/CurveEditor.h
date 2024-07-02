@@ -347,12 +347,13 @@ private:
                 if (newPosition.getX() < -leftGapMax)
                     newPosition = {-leftGapMax, newPosition.getY()};
                 // Don't let mirrored controlPoint pass proceeding endPoint
-                if (nodeIndex > nodes.size() - 1) return;
-                auto* proceedingNode = nodes[nodeIndex + 1];
-                float rightGapMax = proceedingNode->getPosition().getX() - node.getPosition().getX();
-                if (-newPosition.getX() > rightGapMax)
-                    newPosition.setX (-rightGapMax);
-
+                if (nodeIndex < nodes.size() - 1)
+                {
+                    auto* proceedingNode = nodes[nodeIndex + 1];
+                    float rightGapMax = proceedingNode->getPosition().getX() - node.getPosition().getX();
+                    if (-newPosition.getX() > rightGapMax)
+                        newPosition.setX (-rightGapMax);
+                }
             } else if (controlPoint == &node.getControlPointTwo())
             { 
                 if (newPosition.getX() < 0.0f) newPosition = {0.0f, controlPoint->getPosition().getY()};
@@ -362,11 +363,14 @@ private:
                 if (newPosition.getX() > rightGapMax)
                     newPosition = {rightGapMax, newPosition.getY()};
                 
-                if (nodeIndex < 1) return;
-                auto* preceedingNode = nodes[nodeIndex - 1];
-                float leftGapMax = node.getPosition().getX() - preceedingNode->getPosition().getX();
-                if (newPosition.getX() > leftGapMax)
-                    newPosition.setX (leftGapMax);
+                if (nodeIndex > 0)
+                {
+                    auto* preceedingNode = nodes[nodeIndex - 1];
+                    float leftGapMax = node.getPosition().getX() - preceedingNode->getPosition().getX();
+                    if (newPosition.getX() > leftGapMax)
+                        newPosition.setX (leftGapMax); 
+                }
+                
             }
 
             draggablePoint->setPosition (newPosition);
