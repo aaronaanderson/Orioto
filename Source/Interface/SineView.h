@@ -7,7 +7,8 @@
 
 namespace oi
 {
-class SineView : public juce::Component
+class SineView : public juce::Component, 
+                 private juce::ValueTree::Listener
 {
 public:
     SineView (juce::ValueTree curveBranch)
@@ -15,6 +16,7 @@ public:
     {
         jassert (state.getType() == id::CURVE);
         calculateTransferFunction();
+        state.addListener (this);
     }
 
     void paint (juce::Graphics& g) override
@@ -33,7 +35,7 @@ public:
         juce::Point<float> nextPoint;
         sineCurve.startNewSubPath (previousPoint);
 
-        int skip = 10;
+        int skip = 15;
         for (int x = 0; x < getWidth(); x += skip)
         {
             // paint background sine
@@ -46,30 +48,31 @@ public:
         nextPoint = {static_cast<float> (getWidth()), normalToY (std::sin (xToPhase (getWidth())))};
         juce::Line<float> finalSegment = {previousPoint, nextPoint};
         sineCurve.addLineSegment (finalSegment, 1.0f);
-        g.strokePath (sineCurve.createPathWithRoundedCorners (2.0f), juce::PathStrokeType (2.0f));
+        g.strokePath (sineCurve.createPathWithRoundedCorners (2.0f), juce::PathStrokeType (1.0f));
 
         // paint output
         juce::Path outputPath;
-        previousPoint = {0.0f, normalToY (transferFunction.getClippedLine ({{xToNormal (0), -1.0f},
-                                                                            {xToNormal (0), 1.0f}}, 
+        previousPoint = {0.0f, normalToY (transferFunction.getClippedLine ({{std::sin (xToPhase (0)), -1.0f},
+                                                                            {std::sin (xToPhase(0)) , 1.0f}}, 
                                                                             false).getEndY())};
         outputPath.startNewSubPath (previousPoint);
         for (int x = 0; x < getWidth(); x += skip)
         {
             g.setColour (laf->getAccentColour());
-            auto l = transferFunction.getClippedLine ({{xToNormal (x), -1.0f},
-                                                       {xToNormal (x), 1.0f}}, 
+            auto l = transferFunction.getClippedLine ({{std::sin (xToPhase (x)), -1.0f},
+                                                       {std::sin (xToPhase (x)), 1.0f}}, 
                                                         false);
             nextPoint = {static_cast<float> (x), normalToY (l.getEndY())};
             outputPath.addLineSegment ({previousPoint, nextPoint}, 1.0f);
             previousPoint = nextPoint;
         }
         nextPoint = {static_cast<float> (getWidth()), 
-                     normalToY (transferFunction.getClippedLine ({{xToNormal (getWidth()), -1.0f},
-                                                                  {xToNormal (getWidth()), 1.0f}}, 
+                     normalToY (transferFunction.getClippedLine ({{std::sin (xToPhase (getWidth())), -1.0f},
+                                                                  {std::sin (xToPhase (getWidth())), 1.0f}}, 
                                                                    false).getEndY())};
         finalSegment = {previousPoint, nextPoint};
-        g.strokePath (outputPath.createPathWithRoundedCorners (2.0f), juce::PathStrokeType (2.0f));
+        outputPath.addLineSegment (finalSegment, 1.0f);
+        g.strokePath (outputPath.createPathWithRoundedCorners (static_cast<float> (skip)), juce::PathStrokeType (1.0f));
     }
 
 private:
@@ -137,6 +140,18 @@ private:
         transferFunction.lineTo ({1.0f, -2.0f});
         transferFunction.lineTo ({-1.0f, -2.0f});
         transferFunction.lineTo (firstNode.endPoint);
+    }
+    void valueTreePropertyChanged (juce::ValueTree& tree,
+                                   const juce::Identifier& property) override
+    {
+        juce::ignoreUnused (property);
+        if (tree.getType() == id::endPoint || 
+            tree.getType() == id::controlPoint1 || 
+            tree.getType() == id::controlPoint2)
+        {
+            calculateTransferFunction();
+            repaint();
+        }
     }
 };
 }
