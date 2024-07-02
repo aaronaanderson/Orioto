@@ -36,7 +36,7 @@ public:
         juce::Point<float> nextPoint;
         sineCurve.startNewSubPath (previousPoint);
 
-        int skip = 15;
+        int skip = 5;
         for (int x = 0; x < getWidth(); x += skip)
         {
             // paint background sine
@@ -52,25 +52,19 @@ public:
         g.strokePath (sineCurve.createPathWithRoundedCorners (2.0f), juce::PathStrokeType (1.0f));
 
         // paint output
+        CurvePositionCalculator cpc (state);
         juce::Path outputPath;
-        previousPoint = {0.0f, normalToY (transferFunction.getClippedLine ({{std::sin (xToPhase (0)), -1.0f},
-                                                                            {std::sin (xToPhase(0)) , 1.0f}}, 
-                                                                            false).getEndY())};
+        previousPoint = {0.0f, normalToY (cpc.getYatX (std::sin (xToPhase (0))))};
         outputPath.startNewSubPath (previousPoint);
         for (int x = 0; x < getWidth(); x += skip)
         {
             g.setColour (laf->getAccentColour());
-            auto l = transferFunction.getClippedLine ({{std::sin (xToPhase (x)), -1.0f},
-                                                       {std::sin (xToPhase (x)), 1.0f}}, 
-                                                        false);
-            nextPoint = {static_cast<float> (x), normalToY (l.getEndY())};
+            nextPoint = {static_cast<float> (x), normalToY (cpc.getYatX (std::sin (xToPhase (x))))};
             outputPath.addLineSegment ({previousPoint, nextPoint}, 1.0f);
             previousPoint = nextPoint;
         }
         nextPoint = {static_cast<float> (getWidth()), 
-                     normalToY (transferFunction.getClippedLine ({{std::sin (xToPhase (getWidth())), -1.0f},
-                                                                  {std::sin (xToPhase (getWidth())), 1.0f}}, 
-                                                                   false).getEndY())};
+                     normalToY (cpc.getYatX (std::sin (xToPhase (getWidth()))))};
         finalSegment = {previousPoint, nextPoint};
         outputPath.addLineSegment (finalSegment, 1.0f);
         g.strokePath (outputPath.createPathWithRoundedCorners (static_cast<float> (skip)), juce::PathStrokeType (1.0f));
