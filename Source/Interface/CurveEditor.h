@@ -300,15 +300,27 @@ private:
             // bind endpointX to neighboring controlPoints
             if (nodeIndex > 0 && nodeIndex < nodes.size() - 1)
             {
+                // make sure endPoint doesn't pass previousNode's controlPoint
                 auto* preceedingNode = nodes[nodeIndex - 1];
                 auto leftBounds = preceedingNode->getEndPoint().getPosition().getX() +
                                   preceedingNode->getControlPointTwo().getPosition().getX();
                 if (newPosition.getX() < leftBounds) newPosition.setX (leftBounds);
+
+                // make sure currentNode's controlPoint doesn't pass previousNode's endPoint
+                auto leftGapMax = node.getControlPointOne().getPosition().getX();
+                if (newPosition.getX() - preceedingNode->getPosition().getX() < -leftGapMax) 
+                    newPosition.setX (preceedingNode->getPosition().getX() + -leftGapMax);
                 
+                // make sure endPoint doesn't pass proceedingNode's controlPoint
                 auto* proceedingNode = nodes[nodeIndex + 1];
                 auto rightBounds = proceedingNode->getEndPoint().getPosition().getX() + 
                                    proceedingNode->getControlPointOne().getPosition().getX();
                 if (newPosition.getX() > rightBounds) newPosition.setX (rightBounds);
+
+                //make sure currentNodes' controlPoint doesn't pass proceedingNode's endPoint
+                auto rightGapMax = node.getControlPointTwo().getPosition().getX();
+                if (proceedingNode->getPosition().getX() - newPosition.getX() < rightGapMax)
+                    newPosition.setX (proceedingNode->getPosition().getX() - rightGapMax);
             }
             newPosition.x = juce::jlimit (-1.0f, 1.0f, newPosition.getX());
             newPosition.y = juce::jlimit (-1.0f, 1.0f, newPosition.getY());
