@@ -84,6 +84,7 @@ private:
                                                leftNode->endPoint.getX(), 
                                                rightNode->endPoint.getX(), 
                                                0.0f, 1.0f);
+        std::cout << normalizedPosition << std::endl;
         auto a = lerp (leftNode->endPoint, leftNode->controlPointTwo, normalizedPosition);
         auto b = lerp (leftNode->controlPointTwo, rightNode->controlPointOne, normalizedPosition);
         auto c = lerp (rightNode->controlPointOne, rightNode->endPoint, normalizedPosition);

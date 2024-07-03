@@ -16,10 +16,8 @@ public:
       : state (curveBranch)
     {
         jassert (state.getType() == id::CURVE);
-        calculateTransferFunction();
         state.addListener (this);
     }
-
     void paint (juce::Graphics& g) override
     {
         auto laf = dynamic_cast<OriotoLookAndFeel*> (&getLookAndFeel());
@@ -36,8 +34,7 @@ public:
         juce::Point<float> nextPoint;
         sineCurve.startNewSubPath (previousPoint);
 
-        int skip = 5;
-        for (int x = 0; x < getWidth(); x += skip)
+        for (int x = 0; x < getWidth(); x += 20)
         {
             // paint background sine
             g.setColour (laf->getBackgroundColour());
@@ -56,6 +53,7 @@ public:
         juce::Path outputPath;
         previousPoint = {0.0f, normalToY (cpc.getYatX (std::sin (xToPhase (0))))};
         outputPath.startNewSubPath (previousPoint);
+        int skip = 5;
         for (int x = 0; x < getWidth(); x += skip)
         {
             g.setColour (laf->getAccentColour());
@@ -67,9 +65,8 @@ public:
                      normalToY (cpc.getYatX (std::sin (xToPhase (getWidth()))))};
         finalSegment = {previousPoint, nextPoint};
         outputPath.addLineSegment (finalSegment, 1.0f);
-        g.strokePath (outputPath.createPathWithRoundedCorners (static_cast<float> (skip)), juce::PathStrokeType (1.0f));
+        g.strokePath (outputPath.createPathWithRoundedCorners (static_cast<float> (skip)), juce::PathStrokeType (2.0f));
     }
-
 private:
     juce::ValueTree state;
     juce::Path transferFunction;
@@ -94,48 +91,6 @@ private:
     {
         return index / static_cast<float> (getWidth());
     }
-    struct Node
-    {
-        juce::Point<float> endPoint;
-        juce::Point<float> controlPointOne;
-        juce::Point<float> controlPointTwo;
-    };
-    Node nodeFromIndex (int index)
-    {
-        auto nodeBranch = state.getChild (index);
-        Node node;
-        auto endPoint = nodeBranch.getChildWithName (id::endPoint);
-        node.endPoint = {static_cast<float> (endPoint.getProperty (id::x)), 
-                         static_cast<float> (endPoint.getProperty (id::y))};
-        auto controlPointOne = nodeBranch.getChildWithName (id::controlPoint1);
-        node.controlPointOne = {static_cast<float> (controlPointOne.getProperty (id::x)), 
-                                static_cast<float> (controlPointOne.getProperty (id::y))};
-        auto controlPointTwo = nodeBranch.getChildWithName (id::controlPoint2);
-        node.controlPointTwo = {static_cast<float> (controlPointTwo.getProperty (id::x)), 
-                                static_cast<float> (controlPointTwo.getProperty (id::y))};
-        return node;
-    }
-
-    void calculateTransferFunction()
-    {
-        transferFunction.clear();
-        auto firstNode = nodeFromIndex (0);
-        transferFunction.startNewSubPath (firstNode.endPoint);
-        juce::Point<float> previousControlPoint = firstNode.endPoint + firstNode.controlPointTwo;
-        for (int i = 1; i < state.getNumChildren(); i++)
-        {
-            auto nextNode = nodeFromIndex (i);
-            transferFunction.cubicTo (previousControlPoint, 
-                                      nextNode.endPoint + nextNode.controlPointOne, 
-                                      nextNode.endPoint);
-            previousControlPoint = nextNode.endPoint + nextNode.controlPointOne;
-        }
-
-        // fill shape to find intersections
-        transferFunction.lineTo ({1.0f, -2.0f});
-        transferFunction.lineTo ({-1.0f, -2.0f});
-        transferFunction.lineTo (firstNode.endPoint);
-    }
     void valueTreePropertyChanged (juce::ValueTree& tree,
                                    const juce::Identifier& property) override
     {
@@ -144,7 +99,6 @@ private:
             tree.getType() == id::controlPoint1 || 
             tree.getType() == id::controlPoint2)
         {
-            calculateTransferFunction();
             repaint();
         }
     }
