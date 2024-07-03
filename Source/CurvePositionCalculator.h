@@ -22,6 +22,12 @@ public:
     {
         return calculateYBetweenNodes (getLeftNode (x), getRightNode (x), x);
     }
+    void reset (juce::ValueTree curveBranch)
+    {
+        jassert (curveBranch.getType() == id::CURVE);
+        state = curveBranch;
+        initializeState();
+    }
 private:
     juce::ValueTree state;
     juce::Array<Node> nodes;
@@ -43,6 +49,7 @@ private:
     }
     void initializeState()
     {
+        nodes.clear();
         for (int i = 0; i < state.getNumChildren(); i++)
             nodes.add (nodeFromIndex (i));
     }
@@ -80,11 +87,14 @@ private:
         jassert (position >= leftNode->endPoint.getX() &&
                  position <= rightNode->endPoint.getX());
 
+        if (juce::approximatelyEqual (leftNode->endPoint.getX(), rightNode->endPoint.getX()))
+            return leftNode->endPoint.getY();
+
         float normalizedPosition = juce::jmap (position, 
                                                leftNode->endPoint.getX(), 
                                                rightNode->endPoint.getX(), 
                                                0.0f, 1.0f);
-        std::cout << normalizedPosition << std::endl;
+
         auto a = lerp (leftNode->endPoint, leftNode->controlPointTwo, normalizedPosition);
         auto b = lerp (leftNode->controlPointTwo, rightNode->controlPointOne, normalizedPosition);
         auto c = lerp (rightNode->controlPointOne, rightNode->endPoint, normalizedPosition);

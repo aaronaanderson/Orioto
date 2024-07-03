@@ -15,6 +15,7 @@ MainProcessor::MainProcessor()
       valueTreeState (*this, &undoManager, id::ORIOTO, {})
 {
     valueTreeState.state.addChild (CurveBranch::create(), -1, nullptr);
+    transferFunctionProcessor = std::make_unique<op::TransferFunctionProcessor<float>> (getState().getChildWithName (id::CURVE));
 }
 
 MainProcessor::~MainProcessor()
@@ -92,6 +93,13 @@ void MainProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
     juce::ignoreUnused (sampleRate, samplesPerBlock);
+    juce::dsp::ProcessSpec spec;
+    spec.maximumBlockSize = static_cast<juce::uint32> (samplesPerBlock);
+    spec.numChannels = 2;
+    spec.sampleRate = sampleRate;
+    transferFunctionProcessor->prepare (spec);
+
+    phaseIncrement = juce::MathConstants<double>::twoPi * 220.0 / sampleRate;
 }
 
 void MainProcessor::releaseResources()
@@ -142,18 +150,18 @@ void MainProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+
+    auto* channelData = buffer.getWritePointer (0);
+    for (int i = 0; i < buffer.getNumSamples(); i++)
     {
-        auto* channelData = buffer.getWritePointer (channel);
-        juce::ignoreUnused (channelData);
-        // ..do something to the data...
+        channelData[i] = (float)std::sin (phase);
+        phase = std::fmod (phase + phaseIncrement, juce::MathConstants<double>::twoPi);
     }
+    buffer.copyFrom (1, 0, buffer.getReadPointer (0), buffer.getNumSamples());
+    
+    auto audioBlock = juce::dsp::AudioBlock<float> (buffer);
+    auto context = juce::dsp::ProcessContextReplacing<float> (audioBlock);
+    transferFunctionProcessor->process (context);
 }
 
 //==============================================================================
