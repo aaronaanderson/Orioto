@@ -50,8 +50,10 @@ private:
     juce::UndoManager undoManager;
     
     std::unique_ptr<op::TransferFunctionProcessor<float>> transferFunctionProcessor;
+    juce::dsp::Oversampling<float> overSampler;
+    
     double phase = 0;
     double phaseIncrement = 0.001;
-    int bufferTick = 0;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainProcessor)
 };

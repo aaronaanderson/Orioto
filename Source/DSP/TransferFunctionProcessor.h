@@ -42,10 +42,6 @@ private:
         auto f = [&](size_t i){ return cpc.getYatX (indexToNormalized (i)); };
         workingBuffer->initialise (f, numPoints);
         transferFunction.swap (workingBuffer);
-        for (size_t i = 0; i < numPoints; i++)
-        {
-            std::cout << indexToNormalized (i) << " | " << transferFunction->get ((float)i) << std::endl;
-        }
     }
     float indexToNormalized (size_t index)
     {

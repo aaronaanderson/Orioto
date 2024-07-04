@@ -4,6 +4,7 @@
 #include "Interface/LookAndFeel.hpp"
 #include "Interface/CurveEditor.h"
 #include "Interface/SineView.h"
+#include "Interface/ControlPanel.h"
 
 //==============================================================================
 class MainEditor final : public juce::AudioProcessorEditor
@@ -22,5 +23,6 @@ private:
 
     oi::Curve curveEditor;
     oi::SineView sineView;
+    oi::ControlPanel controlPanel;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainEditor)
 };

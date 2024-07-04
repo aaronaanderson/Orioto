@@ -12,7 +12,8 @@ MainProcessor::MainProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ), 
-      valueTreeState (*this, &undoManager, id::ORIOTO, {})
+      valueTreeState (*this, &undoManager, id::ORIOTO, {}), 
+      overSampler (2, 3, juce::dsp::Oversampling<float>::FilterType::filterHalfBandPolyphaseIIR)
 {
     valueTreeState.state.addChild (CurveBranch::create(), -1, nullptr);
     transferFunctionProcessor = std::make_unique<op::TransferFunctionProcessor<float>> (getState().getChildWithName (id::CURVE));
@@ -98,6 +99,9 @@ void MainProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     spec.numChannels = 2;
     spec.sampleRate = sampleRate;
     transferFunctionProcessor->prepare (spec);
+    
+    overSampler.reset();
+    overSampler.initProcessing (static_cast<unsigned long> (samplesPerBlock));
 
     phaseIncrement = juce::MathConstants<double>::twoPi * 440.0 / sampleRate;
 }
@@ -144,26 +148,19 @@ void MainProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    auto* channelData = buffer.getWritePointer (0);
-    for (int i = 0; i < buffer.getNumSamples(); i++)
-    {
-        channelData[i] = (float)std::sin (phase) * 0.92f;
-        phase = std::fmod (phase + phaseIncrement, juce::MathConstants<double>::twoPi);
-    }
-    buffer.copyFrom (1, 0, buffer.getReadPointer (0), buffer.getNumSamples());
+    // auto* channelData = buffer.getWritePointer (0);
+    // for (int i = 0; i < buffer.getNumSamples(); i++)
+    // {
+    //     channelData[i] = (float)std::sin (phase) * 0.92f;
+    //     phase = std::fmod (phase + phaseIncrement, juce::MathConstants<double>::twoPi);
+    // }
+    // buffer.copyFrom (1, 0, buffer.getReadPointer (0), buffer.getNumSamples());
 
-    auto audioBlock = juce::dsp::AudioBlock<float> (buffer);
-    auto context = juce::dsp::ProcessContextReplacing<float> (audioBlock);
-    transferFunctionProcessor->process (context);
-    if (bufferTick < 8)
-    {
-        // std::cout << "============" << std::endl;
-        for (int i = 0; i < buffer.getNumSamples(); i++)
-        {
-            //std::cout << buffer.getReadPointer(0)[i] << std::endl;
-        }
-        bufferTick++;
-    }
+    auto inputBlock = juce::dsp::AudioBlock<float> (buffer);
+    auto upSampledBlock = overSampler.processSamplesUp (inputBlock);
+    auto upSampledContext = juce::dsp::ProcessContextReplacing<float> (upSampledBlock);
+    transferFunctionProcessor->process (upSampledContext);
+    overSampler.processSamplesDown (inputBlock);
 }
 
 //==============================================================================
