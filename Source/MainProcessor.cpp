@@ -100,6 +100,11 @@ void MainProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     spec.sampleRate = sampleRate;
     transferFunctionProcessor->prepare (spec);
     
+    auto& lowShelf = inputChain.get<0>();
+    lowShelf.state = juce::dsp::IIR::Coefficients<float>::makeLowShelf (spec.sampleRate, 200.0f, 10.0f, juce::Decibels::decibelsToGain (12.0f));
+
+    inputChain.prepare (spec);
+
     overSampler.reset();
     overSampler.initProcessing (static_cast<unsigned long> (samplesPerBlock));
 
@@ -157,6 +162,9 @@ void MainProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // buffer.copyFrom (1, 0, buffer.getReadPointer (0), buffer.getNumSamples());
 
     auto inputBlock = juce::dsp::AudioBlock<float> (buffer);
+    auto inputContext = juce::dsp::ProcessContextReplacing (inputBlock);
+    inputChain.process (inputContext);
+
     auto upSampledBlock = overSampler.processSamplesUp (inputBlock);
     auto upSampledContext = juce::dsp::ProcessContextReplacing<float> (upSampledBlock);
     transferFunctionProcessor->process (upSampledContext);

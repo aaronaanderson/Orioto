@@ -51,7 +51,8 @@ private:
     
     std::unique_ptr<op::TransferFunctionProcessor<float>> transferFunctionProcessor;
     juce::dsp::Oversampling<float> overSampler;
-    
+
+    juce::dsp::ProcessorChain<juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>>> inputChain;
     double phase = 0;
     double phaseIncrement = 0.001;
 
