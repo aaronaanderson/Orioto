@@ -100,6 +100,7 @@ private:
         auto c = lerp (rightNode->controlPointOne, rightNode->endPoint, normalizedPosition);
         auto d = lerp (a, b, normalizedPosition);
         auto e = lerp (b, c, normalizedPosition);
-        return lerp (d, e, normalizedPosition).getY();
+        auto f = lerp (d, e, normalizedPosition);
+        return juce::jlimit (-1.0f, 1.0f, f.getY());
     }
 };

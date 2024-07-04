@@ -17,26 +17,35 @@ public:
     {
         jassert (state.getType() == id::CURVE);
         state.addListener (this);
+        transferFunction.reset (new juce::dsp::LookupTable<float>());
+        workingBuffer.reset (new juce::dsp::LookupTable<float>());
         updateTransferFunction();
     }
     float lookUp (const float value)
     {
+        jassert (value <= 1.0f);
+        jassert (value >= -1.0f);
         auto clampedValue = juce::jlimit (-1.0f, 1.0f, value);
         float index = normalizedToIndex (clampedValue);
-        return transferFunction.get (index);
+        return transferFunction->get (index);
     }
 private:
     juce::ValueTree state;
-    juce::dsp::LookupTable<float> transferFunction;
-    static const size_t numPoints = 1024 * 1;
+    static const size_t numPoints = 32 * 1;
+    std::unique_ptr<juce::dsp::LookupTable<float>> transferFunction;
+    std::unique_ptr<juce::dsp::LookupTable<float>> workingBuffer;
     CurvePositionCalculator cpc;
 
     void updateTransferFunction()
     {
         cpc.reset (state);
         auto f = [&](size_t i){ return cpc.getYatX (indexToNormalized (i)); };
-        transferFunction.initialise (f, numPoints);
-
+        workingBuffer->initialise (f, numPoints);
+        transferFunction.swap (workingBuffer);
+        for (size_t i = 0; i < numPoints; i++)
+        {
+            std::cout << indexToNormalized (i) << " | " << transferFunction->get ((float)i) << std::endl;
+        }
     }
     float indexToNormalized (size_t index)
     {
