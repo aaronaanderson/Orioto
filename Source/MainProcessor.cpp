@@ -117,7 +117,10 @@ void MainProcessor::prepareToPlay (double sr, int samplesPerBlock)
     overSampler.reset();
     overSampler.initProcessing (static_cast<unsigned long> (samplesPerBlock));
 
-    auto& outputLevel = outputChain.get<0>();
+    auto& dcFilter = outputChain.get<0>();
+    *dcFilter.state = juce::dsp::IIR::ArrayCoefficients<float>::makeHighPass (sampleRate, 5.0f);
+
+    auto& outputLevel = outputChain.get<1>();
     outputLevel.setRampDurationSeconds (0.01);
     
     outputChain.prepare (spec);
@@ -201,7 +204,7 @@ void MainProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     transferFunctionProcessor->process (upSampledContext);
     overSampler.processSamplesDown (inputBlock);
 
-    auto& outputLevel = outputChain.get<0>();
+    auto& outputLevel = outputChain.get<1>();
     outputLevel.setGainDecibels (*valueTreeState.getRawParameterValue ("OutputLevel"));
 
     auto outputBlock = juce::dsp::AudioBlock<float> (buffer);

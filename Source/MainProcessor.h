@@ -57,7 +57,9 @@ private:
                                                              juce::dsp::IIR::Coefficients<float>>,
                               juce::dsp::Compressor<float>> inputChain;
     
-    juce::dsp::ProcessorChain<juce::dsp::Gain<float>> outputChain;
+    juce::dsp::ProcessorChain<juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>,
+                                                             juce::dsp::IIR::Coefficients<float>>,
+                              juce::dsp::Gain<float>> outputChain;
     
     struct FilterSettings
     {
