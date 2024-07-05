@@ -2,6 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_audio_basics/juce_audio_basics.h>
+#include "AttachedSlider.h"
 namespace oi
 {
 
@@ -35,70 +36,57 @@ class LowShelfPanel : public Panel
 public:
     LowShelfPanel (juce::AudioProcessorValueTreeState& vts)
       : Panel ("Low Shelf"),
-        valueTreeState (vts)
+        frequency ("Frequency", "LowShelfFrequency", vts), 
+        gain ("Gain", "LowShelfGain", vts), 
+        q ("Q", "LowShelfQ", vts)
     {
-        frequencyLabel.setText ("Frequency", juce::dontSendNotification);
-        frequencyLabel.setJustificationType (juce::Justification::centred);
-        addAndMakeVisible (frequencyLabel);
-        frequencySlider.setSliderStyle (juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag);
-        frequencySlider.setTextBoxStyle (juce::Slider::TextEntryBoxPosition::NoTextBox, true, 200, 20);
-        addAndMakeVisible (frequencySlider);
-        frequencyAttachment.reset (new SliderAttachment (valueTreeState, "LowShelfFrequency", frequencySlider));
-    
-        gainLabel.setText ("Gain", juce::dontSendNotification);
-        gainLabel.setJustificationType (juce::Justification::centred);
-        addAndMakeVisible (gainLabel);
-        gainSlider.setSliderStyle (juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag);
-        gainSlider.setTextBoxStyle (juce::Slider::TextEntryBoxPosition::NoTextBox, true, 200, 20);
-        addAndMakeVisible (gainSlider);
-        gainAttachment.reset (new SliderAttachment (valueTreeState, "LowShelfGain", gainSlider));
-
-        qLabel.setText ("Q", juce::dontSendNotification);
-        qLabel.setJustificationType (juce::Justification::centred);
-        addAndMakeVisible (qLabel);
-        qSlider.setSliderStyle (juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag);
-        qSlider.setTextBoxStyle (juce::Slider::TextEntryBoxPosition::NoTextBox, true, 200, 20);
-        addAndMakeVisible (qSlider);
-        qAttachment.reset (new SliderAttachment (valueTreeState, "LowShelfQ", qSlider));
+        addAndMakeVisible (frequency);
+        addAndMakeVisible (gain);
+        addAndMakeVisible (q);
     }
     void resized()
     {
         auto b = getAdjustedBounds();
         auto unitWidth = b.getWidth() / 3;
         
-        auto frequencyBounds = b.removeFromLeft (unitWidth);
-        frequencyLabel.setBounds (frequencyBounds.removeFromTop (20));
-        frequencySlider.setBounds (frequencyBounds);
-        
-        auto gainBounds = b.removeFromLeft (unitWidth);
-        gainLabel.setBounds (gainBounds.removeFromTop (20));
-        gainSlider.setBounds (gainBounds);
-
-        auto qBounds = b.removeFromLeft (unitWidth);
-        qLabel.setBounds (qBounds.removeFromTop (20));
-        qSlider.setBounds (qBounds);
+        frequency.setBounds (b.removeFromLeft (unitWidth));
+        gain.setBounds (b.removeFromLeft (unitWidth));
+        q.setBounds (b.removeFromLeft (unitWidth));
     }
 private:
-    juce::AudioProcessorValueTreeState& valueTreeState;
-    
-    juce::Label frequencyLabel;
-    juce::Slider frequencySlider;
-    std::unique_ptr<SliderAttachment> frequencyAttachment;
-    
-    juce::Label gainLabel;
-    juce::Slider gainSlider;
-    std::unique_ptr<SliderAttachment> gainAttachment;
-    
-    juce::Label qLabel;
-    juce::Slider qSlider;
-    std::unique_ptr<SliderAttachment> qAttachment;
+    AttachedSlider frequency;
+    AttachedSlider gain;
+    AttachedSlider q;
 };
 class InputCompressionPanel : public Panel
 {
 public:
-    InputCompressionPanel()
-      : Panel ("Input Compression")
-    {}
+    InputCompressionPanel (juce::AudioProcessorValueTreeState& vts)
+      : Panel ("Input Compression"), 
+        threshold ("Threshold", "InputCompressionThreshold", vts), 
+        ratio ("Ratio",         "InputCompressionRatio", vts), 
+        attack ("Attack",       "InputCompressionAttack", vts), 
+        release ("Release",     "InputCompressionRelease", vts)
+    {
+        addAndMakeVisible (threshold);
+        addAndMakeVisible (ratio);
+        addAndMakeVisible (attack);
+        addAndMakeVisible (release);
+    }
+    void resized()
+    {
+        auto b = getAdjustedBounds();
+        auto unitWidth = b.getWidth() / 4;
+        threshold.setBounds (b.removeFromLeft (unitWidth));
+        ratio.setBounds (b.removeFromLeft (unitWidth));
+        attack.setBounds (b.removeFromLeft (unitWidth));
+        release.setBounds (b.removeFromLeft (unitWidth));
+    }
+private:
+    AttachedSlider threshold;
+    AttachedSlider ratio;
+    AttachedSlider attack;
+    AttachedSlider release;
 };
 class BlendPanel : public Panel
 {
@@ -131,9 +119,24 @@ public:
 class OutputLevevlPanel : public Panel
 {
 public:
-    OutputLevevlPanel()
-      : Panel ("Output Level")
-    {}
+    OutputLevevlPanel (juce::AudioProcessorValueTreeState& vts)
+      : Panel ("Output Level"), 
+        valueTreeState (vts)
+    {
+        outputLevelSlider.setSliderStyle (juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag);
+        outputLevelSlider.setTextBoxStyle (juce::Slider::TextEntryBoxPosition::NoTextBox, true, 200, 20);
+        addAndMakeVisible (outputLevelSlider);
+        outputLevelAttachment.reset (new SliderAttachment (valueTreeState, "OutputLevel", outputLevelSlider));
+    }
+    void resized()
+    {
+        outputLevelSlider.setBounds (getAdjustedBounds());
+    }
+private:
+    juce::AudioProcessorValueTreeState& valueTreeState;
+    juce::Label outputLeveLabel;
+    juce::Slider outputLevelSlider;
+    std::unique_ptr<SliderAttachment> outputLevelAttachment;
 };
 
 
@@ -141,7 +144,9 @@ class ControlPanel : public juce::Component
 {
 public:
     ControlPanel (juce::AudioProcessorValueTreeState& vts)
-      : lowShelfPanel (vts)
+      : lowShelfPanel (vts),
+        inputCompressionPanel (vts), 
+        outputLevelPanel (vts)
     { 
         addAndMakeVisible (lowShelfPanel);
         addAndMakeVisible (inputCompressionPanel);

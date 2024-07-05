@@ -53,7 +53,43 @@ private:
     std::unique_ptr<op::TransferFunctionProcessor<float>> transferFunctionProcessor;
     juce::dsp::Oversampling<float> overSampler;
 
-    juce::dsp::ProcessorChain<juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>>> inputChain;
+    juce::dsp::ProcessorChain<juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, 
+                                                             juce::dsp::IIR::Coefficients<float>>,
+                              juce::dsp::Compressor<float>> inputChain;
+    
+    juce::dsp::ProcessorChain<juce::dsp::Gain<float>> outputChain;
+    
+    struct FilterSettings
+    {
+        float frequency = 200.0f;
+        float gain = 0.0f;
+        float q = 1.0f;
+    };
+    struct SmoothFilterSettings
+    {
+        SmoothFilterSettings()
+        {
+            int numBuffers = 8;
+            frequency.reset (numBuffers);
+            gain.reset (numBuffers);
+            q.reset (numBuffers);
+        }
+        const FilterSettings getSettings()
+        {
+            return {frequency.getNextValue(), gain.getNextValue(), q.getNextValue()};
+        }
+        void setTarget (const FilterSettings settings)
+        {
+            frequency.setTargetValue (settings.frequency);
+            gain.setTargetValue (settings.gain);
+            q.setTargetValue (settings.q);
+        }
+    private:
+        juce::SmoothedValue<float> frequency;
+        juce::SmoothedValue<float> gain;
+        juce::SmoothedValue<float> q;
+    };
+    SmoothFilterSettings smoothFilterSettings;
     double phase = 0;
     double phaseIncrement = 0.001;
 
