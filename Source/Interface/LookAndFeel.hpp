@@ -15,7 +15,7 @@ public:
             base, // widgetBackground,
             base, // menuBackground,
             juce::Colours::black, // outline,
-            juce::Colours::white, // defaultText,
+            base.brighter (2.0f), // defaultText,
             background, // defaultFill,
             juce::Colours::white, // highlightedText,
             base, // highlightedFill,
@@ -30,10 +30,10 @@ public:
     static const juce::Colour getBaseColour() { return base; }
     static const juce::Colour getBackgroundColour() { return background; }
     void drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height,
-                                           float sliderPos,
-                                           float minSliderPos,
-                                           float maxSliderPos,
-                                           const juce::Slider::SliderStyle style, juce::Slider& slider) override
+                           float sliderPos,
+                           float minSliderPos,
+                           float maxSliderPos,
+                           const juce::Slider::SliderStyle style, juce::Slider& slider) override
     {
         if (slider.isBar())
         {
@@ -213,4 +213,8 @@ public:
             g.fillRoundedRectangle (tickBounds.reduced (2.0f), 4.0f);
         }
     }
+    void drawCornerResizer (juce::Graphics& /*g*/, int /*w*/, int /*h*/, bool /*isMouseOver*/, bool /*isMouseDragging*/) override
+    {
+    }
 };
+

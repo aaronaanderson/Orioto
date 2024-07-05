@@ -5,7 +5,8 @@
 MainEditor::MainEditor (MainProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p), 
       curveEditor (processorRef.getState().getChildWithName (id::CURVE), processorRef.getUndoManager()),
-      sineView (processorRef.getState().getChildWithName (id::CURVE))
+      sineView (processorRef.getState().getChildWithName (id::CURVE)), 
+      controlPanel (processorRef.getValueTreeState())
 {
     juce::ignoreUnused (processorRef);
 
@@ -15,7 +16,7 @@ MainEditor::MainEditor (MainProcessor& p)
     addAndMakeVisible (sineView);
     addAndMakeVisible (controlPanel);
 
-    setResizable (true, false);
+    setResizable (true, true);
     setResizeLimits (300, 200, 2400, 1600);
     setSize (800, 600);
 }

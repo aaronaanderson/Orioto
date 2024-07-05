@@ -43,12 +43,13 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    juce::AudioProcessorValueTreeState& getValueTreeState() { return valueTreeState; }
     juce::ValueTree& getState() { return valueTreeState.state; }
     juce::UndoManager& getUndoManager() { return undoManager; }
 private:
     juce::AudioProcessorValueTreeState valueTreeState;
     juce::UndoManager undoManager;
-    
+    double sampleRate;
     std::unique_ptr<op::TransferFunctionProcessor<float>> transferFunctionProcessor;
     juce::dsp::Oversampling<float> overSampler;
 
@@ -56,5 +57,6 @@ private:
     double phase = 0;
     double phaseIncrement = 0.001;
 
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainProcessor)
 };

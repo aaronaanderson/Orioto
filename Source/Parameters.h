@@ -1,8 +1,7 @@
 #pragma once
 
-namespace tp
+namespace op
 {
-    
 class ChoiceParameter : public juce::AudioParameterChoice
 {
 public:
@@ -10,7 +9,7 @@ public:
                     juce::StringArray iChoices, 
                     juce::String unit,
                     int defaultChoice = 0)
-      : juce::AudioParameterChoice ({parameterName.removeCharacters(" ") + juce::String("Choice"), 1}, 
+      : juce::AudioParameterChoice ({parameterName.removeCharacters(" "), 1}, 
                                     parameterName, 
                                     iChoices, 
                                     defaultChoice,
@@ -34,7 +33,7 @@ public:
     NormalizedFloatParameter (juce::String parameterName, 
                               float defaultValue = 0.0f,
                               juce::String unit = "")
-    : juce::AudioParameterFloat ({parameterName.removeCharacters(" ") + juce::String("float"), 1}, 
+    : juce::AudioParameterFloat ({parameterName.removeCharacters(" "), 1}, 
                                  parameterName,
                                  {0.0f, 1.0f},  
                                  defaultValue,
@@ -52,7 +51,7 @@ public:
                           juce::NormalisableRange<float> pRange,
                           float defaultValue = 0.0f,
                           juce::String unit = "")
-    : juce::AudioParameterFloat ({parameterName.removeCharacters(" ") + juce::String("float"), 1}, 
+    : juce::AudioParameterFloat ({parameterName.removeCharacters(" "), 1}, 
                                  parameterName,
                                  pRange,  
                                  defaultValue,

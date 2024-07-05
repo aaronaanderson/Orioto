@@ -2,6 +2,8 @@
 #include "MainEditor.h"
 #include "Identifiers.h"
 #include "DefaultTreeGenerator.h"
+#include "Parameters.h"
+
 //==============================================================================
 MainProcessor::MainProcessor()
      : AudioProcessor (BusesProperties()
@@ -12,7 +14,7 @@ MainProcessor::MainProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ), 
-      valueTreeState (*this, &undoManager, id::ORIOTO, {}), 
+      valueTreeState (*this, &undoManager, id::ORIOTO, createParameterLayout()), 
       overSampler (2, 3, juce::dsp::Oversampling<float>::FilterType::filterHalfBandPolyphaseIIR)
 {
     valueTreeState.state.addChild (CurveBranch::create(), -1, nullptr);
@@ -89,7 +91,7 @@ void MainProcessor::changeProgramName (int index, const juce::String& newName)
 }
 
 //==============================================================================
-void MainProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void MainProcessor::prepareToPlay (double sr, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
@@ -97,11 +99,13 @@ void MainProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     juce::dsp::ProcessSpec spec;
     spec.maximumBlockSize = static_cast<juce::uint32> (samplesPerBlock);
     spec.numChannels = 2;
-    spec.sampleRate = sampleRate;
+    spec.sampleRate = sr;
+    sampleRate = sr;
+    
     transferFunctionProcessor->prepare (spec);
     
     auto& lowShelf = inputChain.get<0>();
-    lowShelf.state = juce::dsp::IIR::Coefficients<float>::makeLowShelf (spec.sampleRate, 200.0f, 10.0f, juce::Decibels::decibelsToGain (12.0f));
+    lowShelf.state = juce::dsp::IIR::Coefficients<float>::makeLowShelf (spec.sampleRate, 200.0f, 1.0f, juce::Decibels::decibelsToGain (0.0f));
 
     inputChain.prepare (spec);
 
@@ -160,7 +164,13 @@ void MainProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     //     phase = std::fmod (phase + phaseIncrement, juce::MathConstants<double>::twoPi);
     // }
     // buffer.copyFrom (1, 0, buffer.getReadPointer (0), buffer.getNumSamples());
-
+    auto& lowShelf = inputChain.get<0>();
+    lowShelf.state = juce::dsp::IIR::Coefficients<float>::makeLowShelf 
+        (sampleRate, 
+        *valueTreeState.getRawParameterValue ("LowShelfFrequency"), 
+        *valueTreeState.getRawParameterValue ("LowShelfQ"), 
+        *valueTreeState.getRawParameterValue ("LowShelfGain"));
+    
     auto inputBlock = juce::dsp::AudioBlock<float> (buffer);
     auto inputContext = juce::dsp::ProcessContextReplacing (inputBlock);
     inputChain.process (inputContext);
@@ -205,4 +215,18 @@ void MainProcessor::setStateInformation (const void* data, int sizeInBytes)
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new MainProcessor();
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout MainProcessor::createParameterLayout()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    juce::NormalisableRange<float> range = {20.0f, 320.0f};
+    range.setSkewForCentre (80.0f);
+    layout.add (std::make_unique<op::RangedFloatParameter> ("Low Shelf Frequency", range, 80.0f));
+    range = {-12.0f, 12.0f};
+    layout.add (std::make_unique<op::RangedFloatParameter> ("Low Shelf Gain", range, 0.0f));
+    range = {0.25f, 4.0f}; range.setSkewForCentre (1.0f);
+    layout.add (std::make_unique<op::RangedFloatParameter> ("Low Shelf Q", range, 1.0f));
+    
+    return layout;
 }
