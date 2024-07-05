@@ -125,16 +125,48 @@ private:
 class LowPassPanel : public Panel
 {
 public:
-    LowPassPanel()
-      : Panel ("Low Pass")
-    {}
+    LowPassPanel (juce::AudioProcessorValueTreeState& vts)
+      : Panel ("Low Pass"),
+        frequency ("Frequency", "LowPassFrequency", vts)
+    {
+        addAndMakeVisible (frequency);
+    }
+    void resized() override
+    {
+        frequency.setBounds (getAdjustedBounds());
+    }
+private:
+    AttachedSlider frequency;
 };
 class OutputCompressionPanel : public Panel
 {
 public:
-    OutputCompressionPanel()
-      : Panel ("Output Compression")
-    {}
+    OutputCompressionPanel (juce::AudioProcessorValueTreeState& vts)
+      : Panel ("Output Compression"), 
+        threshold ("Threshold", "OutputCompressionThreshold", vts),
+        ratio ("Ratio", "OutputCompressionRatio", vts),
+        attack ("Attack", "OutputCompressionAttack", vts),
+        release ("Release", "OutputCompressionRelease", vts)
+    {
+        addAndMakeVisible (threshold);
+        addAndMakeVisible (ratio);
+        addAndMakeVisible (attack);
+        addAndMakeVisible (release);
+    }
+    void resized()
+    {
+        auto b = getAdjustedBounds();
+        auto unitWidth = b.getWidth() / 4;
+        threshold.setBounds (b.removeFromLeft (unitWidth));
+        ratio.setBounds (b.removeFromLeft (unitWidth));
+        attack.setBounds (b.removeFromLeft (unitWidth));
+        release.setBounds (b.removeFromLeft (unitWidth));
+    }
+private:
+    AttachedSlider threshold;
+    AttachedSlider ratio;
+    AttachedSlider attack;
+    AttachedSlider release;
 };
 class OutputLevelPanel : public Panel
 {
@@ -167,6 +199,8 @@ public:
       : lowShelfPanel (vts),
         inputCompressionPanel (vts), 
         highShelfPanel (vts),
+        lowPassPanel (vts),
+        outputCompressionPanel (vts),
         outputLevelPanel (vts)
     { 
         addAndMakeVisible (lowShelfPanel);

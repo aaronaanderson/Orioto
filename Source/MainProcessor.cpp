@@ -115,7 +115,7 @@ void MainProcessor::prepareToPlay (double sr, int samplesPerBlock)
     auto& dcFilter = outputChain.get<0>();
     *dcFilter.state = juce::dsp::IIR::ArrayCoefficients<float>::makeHighPass (sampleRate, 5.0f);
 
-    auto& outputLevel = outputChain.get<2>();
+    auto& outputLevel = outputChain.get<4>();
     outputLevel.setRampDurationSeconds (0.01);
     
     outputChain.prepare (spec);
@@ -205,13 +205,18 @@ void MainProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         *valueTreeState.getRawParameterValue ("HighShelfFrequency"), 
         *valueTreeState.getRawParameterValue ("HighShelfQ"), 
         juce::Decibels::decibelsToGain (valueTreeState.getRawParameterValue ("HighShelfGain")->load()));
-    // *highShelf.state = juce::dsp::IIR::ArrayCoefficients<float>::makeHighShelf 
-    //     (sampleRate, 
-    //     *valueTreeState.getRawParameterValue ("HighShelfFrequency"), 
-    //     *valueTreeState.getRawParameterValue ("HighShelfRatio"), 
-    //     juce::Decibels::decibelsToGain (valueTreeState.getRawParameterValue ("HighShelfGain")->load()));
+    
+    auto& lowPass = outputChain.get<2>();
+    *lowPass.state = juce::dsp::IIR::ArrayCoefficients<float>::makeLowPass 
+        (sampleRate, *valueTreeState.getRawParameterValue ("LowPassFrequency"));
+ 
+    auto& outputCompressor = outputChain.get<3>();
+    outputCompressor.setAttack (*valueTreeState.getRawParameterValue ("OutputCompressionAttack"));
+    outputCompressor.setRelease (*valueTreeState.getRawParameterValue ("OutputCompressionRelease"));
+    outputCompressor.setRatio (*valueTreeState.getRawParameterValue ("OutputCompressionRatio"));
+    outputCompressor.setThreshold (*valueTreeState.getRawParameterValue ("OutputCompressionThreshold"));
 
-    auto& outputLevel = outputChain.get<2>();
+    auto& outputLevel = outputChain.get<4>();
     outputLevel.setGainDecibels (*valueTreeState.getRawParameterValue ("OutputLevel"));
 
     auto outputBlock = juce::dsp::AudioBlock<float> (buffer);
@@ -282,6 +287,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout MainProcessor::createParamet
     layout.add (std::make_unique<op::RangedFloatParameter> ("High Shelf Gain", range, 0.0f));
     range = {0.25, 4.0f}; range.setSkewForCentre (1.0f);
     layout.add (std::make_unique<op::RangedFloatParameter> ("High Shelf Q", range, 1.0f));
+
+    range = {5000.0f, 20000.0f}; range.setSkewForCentre (10000.0f);
+    layout.add (std::make_unique<op::RangedFloatParameter> ("Low Pass Frequency", range, 18500.0f));
+
+    range = {-30.0f, 0.0f};
+    layout.add (std::make_unique<op::RangedFloatParameter> ("Output Compression Threshold", range, 0.0f));
+    range = {1.0f, 32.0f}; range.setSkewForCentre (4.0f);
+    layout.add (std::make_unique<op::RangedFloatParameter> ("Output Compression Ratio", range, 4.0f));
+    range = {1.0f, 256.0f}; range.setSkewForCentre (16.0f);
+    layout.add (std::make_unique<op::RangedFloatParameter> ("Output Compression Attack", range, 16.0f));
+    range = {20.0f, 1280.0f}; range.setSkewForCentre (640.0f);
+    layout.add (std::make_unique<op::RangedFloatParameter> ("Output Compression Release", range, 640.0f));
 
     range = { -60.0f, 6.0f };
     layout.add (std::make_unique<op::RangedFloatParameter> ("Output Level", range, 0.0f));
