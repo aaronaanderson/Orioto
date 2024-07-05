@@ -107,11 +107,6 @@ void MainProcessor::prepareToPlay (double sr, int samplesPerBlock)
     auto& lowShelf = inputChain.get<0>();
     *lowShelf.state = juce::dsp::IIR::ArrayCoefficients<float>::makeLowShelf (spec.sampleRate, 400.0f, 1.0f, juce::Decibels::decibelsToGain (0.0f));
 
-    // auto& inputCompressor = inputChain.get<1>();
-    // inputCompressor.setAttack (*valueTreeState.getRawParameterValue ("InputCompressionAttack"));
-    // inputCompressor.setRatio (*valueTreeState.getRawParameterValue ("InputCompressionRatio"));
-    // inputCompressor.setThreshold (*valueTreeState.getRawParameterValue ("InputCompressionThreshold"));
-
     inputChain.prepare (spec);
 
     overSampler.reset();
@@ -120,7 +115,7 @@ void MainProcessor::prepareToPlay (double sr, int samplesPerBlock)
     auto& dcFilter = outputChain.get<0>();
     *dcFilter.state = juce::dsp::IIR::ArrayCoefficients<float>::makeHighPass (sampleRate, 5.0f);
 
-    auto& outputLevel = outputChain.get<1>();
+    auto& outputLevel = outputChain.get<2>();
     outputLevel.setRampDurationSeconds (0.01);
     
     outputChain.prepare (spec);
@@ -204,7 +199,19 @@ void MainProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     transferFunctionProcessor->process (upSampledContext);
     overSampler.processSamplesDown (inputBlock);
 
-    auto& outputLevel = outputChain.get<1>();
+    auto& highShelf = outputChain.get<1>(); juce::ignoreUnused (highShelf);
+        *highShelf.state = juce::dsp::IIR::ArrayCoefficients<float>::makeHighShelf 
+        (sampleRate, 
+        *valueTreeState.getRawParameterValue ("HighShelfFrequency"), 
+        *valueTreeState.getRawParameterValue ("HighShelfQ"), 
+        juce::Decibels::decibelsToGain (valueTreeState.getRawParameterValue ("HighShelfGain")->load()));
+    // *highShelf.state = juce::dsp::IIR::ArrayCoefficients<float>::makeHighShelf 
+    //     (sampleRate, 
+    //     *valueTreeState.getRawParameterValue ("HighShelfFrequency"), 
+    //     *valueTreeState.getRawParameterValue ("HighShelfRatio"), 
+    //     juce::Decibels::decibelsToGain (valueTreeState.getRawParameterValue ("HighShelfGain")->load()));
+
+    auto& outputLevel = outputChain.get<2>();
     outputLevel.setGainDecibels (*valueTreeState.getRawParameterValue ("OutputLevel"));
 
     auto outputBlock = juce::dsp::AudioBlock<float> (buffer);
@@ -269,6 +276,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout MainProcessor::createParamet
     range = {20.0f, 1280.0f}; range.setSkewForCentre (640.0f);
     layout.add (std::make_unique<op::RangedFloatParameter> ("Input Compression Release", range, 640.0f));
 
+    range = {1000.0f, 10000.0f}; range.setSkewForCentre (4000.0f);
+    layout.add (std::make_unique<op::RangedFloatParameter> ("High Shelf Frequency", range, 4000.0f));
+    range = {-8.0f, 8.0f};
+    layout.add (std::make_unique<op::RangedFloatParameter> ("High Shelf Gain", range, 0.0f));
+    range = {0.25, 4.0f}; range.setSkewForCentre (1.0f);
+    layout.add (std::make_unique<op::RangedFloatParameter> ("High Shelf Q", range, 1.0f));
 
     range = { -60.0f, 6.0f };
     layout.add (std::make_unique<op::RangedFloatParameter> ("Output Level", range, 0.0f));

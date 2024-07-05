@@ -98,9 +98,29 @@ public:
 class HighShelfPanel : public Panel
 {
 public:
-    HighShelfPanel()
-      : Panel ("High Shelf")
-    {}
+    HighShelfPanel (juce::AudioProcessorValueTreeState& vts)
+      : Panel ("High Shelf"), 
+        frequency ("Frequency", "HighShelfFrequency", vts),
+        gain ("Gain", "HighShelfGain", vts),
+        q ("Q", "HighShelfQ", vts)
+    {
+        addAndMakeVisible (frequency);
+        addAndMakeVisible (gain);
+        addAndMakeVisible (q);
+    }
+    void resized()
+    {
+        auto b = getAdjustedBounds();
+        auto unitWidth = b.getWidth() / 3;
+        
+        frequency.setBounds (b.removeFromLeft (unitWidth));
+        gain.setBounds (b.removeFromLeft (unitWidth));
+        q.setBounds (b.removeFromLeft (unitWidth));
+    }
+private:
+    AttachedSlider frequency;
+    AttachedSlider gain;
+    AttachedSlider q;
 };
 class LowPassPanel : public Panel
 {
@@ -116,10 +136,10 @@ public:
       : Panel ("Output Compression")
     {}
 };
-class OutputLevevlPanel : public Panel
+class OutputLevelPanel : public Panel
 {
 public:
-    OutputLevevlPanel (juce::AudioProcessorValueTreeState& vts)
+    OutputLevelPanel (juce::AudioProcessorValueTreeState& vts)
       : Panel ("Output Level"), 
         valueTreeState (vts)
     {
@@ -146,6 +166,7 @@ public:
     ControlPanel (juce::AudioProcessorValueTreeState& vts)
       : lowShelfPanel (vts),
         inputCompressionPanel (vts), 
+        highShelfPanel (vts),
         outputLevelPanel (vts)
     { 
         addAndMakeVisible (lowShelfPanel);
@@ -175,7 +196,7 @@ private:
     HighShelfPanel highShelfPanel;
     LowPassPanel lowPassPanel;
     OutputCompressionPanel outputCompressionPanel;
-    OutputLevevlPanel outputLevelPanel;
+    OutputLevelPanel outputLevelPanel;
 
 };
 }
