@@ -78,10 +78,16 @@ public:
 
     void prepare (const juce::dsp::ProcessSpec& spec) 
     {
-        juce::ignoreUnused (spec);
+        dryWetMix.reset (spec.sampleRate, 0.01);
     }
     void reset() noexcept {}
     
+    void setMix (float newMix)
+    {
+        jassert (newMix >= 0.0f && newMix <= 1.0f);
+        dryWetMix.setTargetValue (newMix);
+    }
+
     template<typename ProcessContext>
     void process (const ProcessContext& context) noexcept
     {
@@ -95,13 +101,18 @@ public:
             outputBlock.copyFrom (inputBlock);
             return;
         }
-        for (size_t channel = 0; channel < numChannels; ++channel)
-        {
-            auto* inputSamples = inputBlock.getChannelPointer (channel);
-            auto* outputSamples = outputBlock.getChannelPointer (channel);
 
-            for (size_t i = 0; i < numSamples; ++i)
-                outputSamples[i] = processSample (inputSamples[i]);
+        for (size_t i = 0; i < numSamples; ++i)
+        {
+            auto mix = dryWetMix.getNextValue();
+            for (size_t channel = 0; channel < numChannels; ++channel)
+            {
+                auto* inputSamples = inputBlock.getChannelPointer (channel);
+                auto* outputSamples = outputBlock.getChannelPointer (channel);
+                
+                outputSamples[i] = (mix * processSample (inputSamples[i])) + 
+                                   ((1.0f - mix) * inputSamples[i]);
+            }
         }
     }
     FloatType processSample (FloatType inputValue)
@@ -110,6 +121,7 @@ public:
     }
 private:
     TransferFunction transferFunction;
+    juce::SmoothedValue<float> dryWetMix;
 };
 
 }

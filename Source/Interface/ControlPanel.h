@@ -91,9 +91,18 @@ private:
 class BlendPanel : public Panel
 {
 public:
-    BlendPanel() 
-      : Panel ("Blend")
-    {}
+    BlendPanel (juce::AudioProcessorValueTreeState& vts) 
+      : Panel ("Blend"), 
+        blend ("Blend", "Blend", vts)
+    {
+        addAndMakeVisible (blend);
+    }
+    void resized () override
+    {
+        blend.setBounds (getAdjustedBounds());
+    }
+private:
+    AttachedSlider blend;
 };
 class HighShelfPanel : public Panel
 {
@@ -198,6 +207,7 @@ public:
     ControlPanel (juce::AudioProcessorValueTreeState& vts)
       : lowShelfPanel (vts),
         inputCompressionPanel (vts), 
+        blendPanel (vts),
         highShelfPanel (vts),
         lowPassPanel (vts),
         outputCompressionPanel (vts),

@@ -190,12 +190,14 @@ void MainProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     inputCompressor.setRatio (*valueTreeState.getRawParameterValue ("InputCompressionRatio"));
     inputCompressor.setThreshold (*valueTreeState.getRawParameterValue ("InputCompressionThreshold"));
     
+
     auto inputBlock = juce::dsp::AudioBlock<float> (buffer);
     auto inputContext = juce::dsp::ProcessContextReplacing (inputBlock);
     inputChain.process (inputContext);
 
     auto upSampledBlock = overSampler.processSamplesUp (inputBlock);
     auto upSampledContext = juce::dsp::ProcessContextReplacing<float> (upSampledBlock);
+    transferFunctionProcessor->setMix (*valueTreeState.getRawParameterValue ("Blend"));
     transferFunctionProcessor->process (upSampledContext);
     overSampler.processSamplesDown (inputBlock);
 
@@ -280,6 +282,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout MainProcessor::createParamet
     layout.add (std::make_unique<op::RangedFloatParameter> ("Input Compression Attack", range, 16.0f));
     range = {20.0f, 1280.0f}; range.setSkewForCentre (640.0f);
     layout.add (std::make_unique<op::RangedFloatParameter> ("Input Compression Release", range, 640.0f));
+
+    layout.add (std::make_unique<op::NormalizedFloatParameter> ("Blend", 1.0f));
 
     range = {1000.0f, 10000.0f}; range.setSkewForCentre (4000.0f);
     layout.add (std::make_unique<op::RangedFloatParameter> ("High Shelf Frequency", range, 4000.0f));
