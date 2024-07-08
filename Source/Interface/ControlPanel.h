@@ -201,17 +201,16 @@ private:
 };
 
 
-class ControlPanel : public juce::Component 
+class InnerControlPannel : public juce::Component 
 {
 public:
-    ControlPanel (juce::AudioProcessorValueTreeState& vts)
+    InnerControlPannel (juce::AudioProcessorValueTreeState& vts)
       : lowShelfPanel (vts),
         inputCompressionPanel (vts), 
         blendPanel (vts),
         highShelfPanel (vts),
         lowPassPanel (vts),
-        outputCompressionPanel (vts),
-        outputLevelPanel (vts)
+        outputCompressionPanel (vts)
     { 
         addAndMakeVisible (lowShelfPanel);
         addAndMakeVisible (inputCompressionPanel);
@@ -219,7 +218,6 @@ public:
         addAndMakeVisible (highShelfPanel);
         addAndMakeVisible (lowPassPanel);
         addAndMakeVisible (outputCompressionPanel);
-        addAndMakeVisible (outputLevelPanel);
     }
     void resized()
     {
@@ -231,7 +229,6 @@ public:
         highShelfPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
         lowPassPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
         outputCompressionPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
-        outputLevelPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
     }
 private:
     LowShelfPanel lowShelfPanel;
@@ -240,7 +237,34 @@ private:
     HighShelfPanel highShelfPanel;
     LowPassPanel lowPassPanel;
     OutputCompressionPanel outputCompressionPanel;
-    OutputLevelPanel outputLevelPanel;
-
 };
+
+class ControlPanel : public juce::Component
+{
+public:
+    ControlPanel (juce::AudioProcessorValueTreeState& vts)
+      : viewPort ("Inner Control Pannel"),
+        outputLevelPanel (vts)
+    {
+        viewPort.setViewedComponent(new InnerControlPannel (vts));
+        viewPort.setScrollBarThickness (12);
+        viewPort.setSingleStepSizes (1, 200);
+        addAndMakeVisible (viewPort);
+        addAndMakeVisible (outputLevelPanel);
+    }
+    void resized() override
+    { 
+        auto b = getLocalBounds();
+        outputLevelPanel.setBounds (b.removeFromBottom (100).reduced (2));
+        viewPort.setBounds (b);
+        juce::Rectangle<int> innerViewBounds = {getLocalBounds().getWidth(), 700};
+        auto vc = viewPort.getViewedComponent();
+        vc->setBounds (innerViewBounds);
+    }
+private:
+
+    juce::Viewport viewPort;
+    OutputLevelPanel outputLevelPanel;
+};
+
 }
