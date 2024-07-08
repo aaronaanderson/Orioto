@@ -31,6 +31,22 @@ public:
 private:
     juce::String name;
 };
+class InputGainPanel : public Panel
+{
+public:
+    InputGainPanel (juce::AudioProcessorValueTreeState& vts)
+      : Panel ("Input Gain"), 
+        gain ("Gain", "InputGain", vts)
+    {
+        addAndMakeVisible (gain);
+    }
+    void resized() override
+    {
+        gain.setBounds (getAdjustedBounds());
+    }
+private:
+    AttachedSlider gain;
+};
 class LowShelfPanel : public Panel
 {
 public:
@@ -199,19 +215,19 @@ private:
     juce::Slider outputLevelSlider;
     std::unique_ptr<SliderAttachment> outputLevelAttachment;
 };
-
-
 class InnerControlPannel : public juce::Component 
 {
 public:
     InnerControlPannel (juce::AudioProcessorValueTreeState& vts)
-      : lowShelfPanel (vts),
+      : inputGainPanel (vts),
+        lowShelfPanel (vts),
         inputCompressionPanel (vts), 
         blendPanel (vts),
         highShelfPanel (vts),
         lowPassPanel (vts),
         outputCompressionPanel (vts)
     { 
+        addAndMakeVisible (inputGainPanel);
         addAndMakeVisible (lowShelfPanel);
         addAndMakeVisible (inputCompressionPanel);
         addAndMakeVisible (blendPanel);
@@ -223,6 +239,7 @@ public:
     {
         auto b = getLocalBounds();
         auto unitHeight = b.getHeight() / 7;
+        inputGainPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
         lowShelfPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
         inputCompressionPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
         blendPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
@@ -231,6 +248,7 @@ public:
         outputCompressionPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
     }
 private:
+    InputGainPanel inputGainPanel;
     LowShelfPanel lowShelfPanel;
     InputCompressionPanel inputCompressionPanel;
     BlendPanel blendPanel;
@@ -238,7 +256,6 @@ private:
     LowPassPanel lowPassPanel;
     OutputCompressionPanel outputCompressionPanel;
 };
-
 class ControlPanel : public juce::Component
 {
 public:
@@ -248,7 +265,6 @@ public:
     {
         viewPort.setViewedComponent(new InnerControlPannel (vts));
         viewPort.setScrollBarThickness (12);
-        viewPort.setSingleStepSizes (1, 200);
         addAndMakeVisible (viewPort);
         addAndMakeVisible (outputLevelPanel);
     }
@@ -257,7 +273,7 @@ public:
         auto b = getLocalBounds();
         outputLevelPanel.setBounds (b.removeFromBottom (100).reduced (2));
         viewPort.setBounds (b);
-        juce::Rectangle<int> innerViewBounds = {getLocalBounds().getWidth(), 700};
+        juce::Rectangle<int> innerViewBounds = {getLocalBounds().getWidth(), 800};
         auto vc = viewPort.getViewedComponent();
         vc->setBounds (innerViewBounds);
     }

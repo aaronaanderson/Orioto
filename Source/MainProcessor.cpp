@@ -103,8 +103,10 @@ void MainProcessor::prepareToPlay (double sr, int samplesPerBlock)
     sampleRate = sr;
     
     transferFunctionProcessor->prepare (spec);
-    
-    auto& lowShelf = inputChain.get<0>();
+    auto& inputGain = inputChain.get<0>();
+    inputGain.setRampDurationSeconds (0.01);
+
+    auto& lowShelf = inputChain.get<1>();
     *lowShelf.state = juce::dsp::IIR::ArrayCoefficients<float>::makeLowShelf (spec.sampleRate, 400.0f, 1.0f, juce::Decibels::decibelsToGain (0.0f));
 
     inputChain.prepare (spec);
@@ -171,20 +173,23 @@ void MainProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     //     phase = std::fmod (phase + phaseIncrement, juce::MathConstants<double>::twoPi);
     // }
     // buffer.copyFrom (1, 0, buffer.getReadPointer (0), buffer.getNumSamples());
+    auto& inputGain = inputChain.get<0>();
+    inputGain.setGainDecibels (*valueTreeState.getRawParameterValue ("InputGain"));
+    
     smoothFilterSettings.setTarget ({valueTreeState.getRawParameterValue ("LowShelfFrequency")->load(),
                                      valueTreeState.getRawParameterValue ("LowShelfGain")->load(),
                                      valueTreeState.getRawParameterValue ("LowShelfQ")->load()});
     if (!juce::approximatelyEqual (sampleRate, 0.0))
     {
         auto settings = smoothFilterSettings.getSettings(); juce::ignoreUnused (settings);
-        auto& lowShelf = inputChain.get<0>(); juce::ignoreUnused (lowShelf);
+        auto& lowShelf = inputChain.get<1>(); juce::ignoreUnused (lowShelf);
         *lowShelf.state = juce::dsp::IIR::ArrayCoefficients<float>::makeLowShelf 
             (sampleRate, 
             settings.frequency, 
             settings.q, 
             juce::Decibels::decibelsToGain (settings.gain));
     }
-    auto& inputCompressor = inputChain.get<1>();
+    auto& inputCompressor = inputChain.get<2>();
     inputCompressor.setAttack (*valueTreeState.getRawParameterValue ("InputCompressionAttack"));
     inputCompressor.setRelease (*valueTreeState.getRawParameterValue ("InputCompressionRelease"));
     inputCompressor.setRatio (*valueTreeState.getRawParameterValue ("InputCompressionRatio"));
@@ -266,7 +271,12 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 juce::AudioProcessorValueTreeState::ParameterLayout MainProcessor::createParameterLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
-    juce::NormalisableRange<float> range = {20.0f, 320.0f};
+    juce::NormalisableRange<float> range;
+
+    range = {-12.0f, 12.0f};
+    layout.add (std::make_unique<op::RangedFloatParameter> ("Input Gain", range, 0.0f));
+    
+    range = {20.0f, 320.0f};
     range.setSkewForCentre (80.0f);
     layout.add (std::make_unique<op::RangedFloatParameter> ("Low Shelf Frequency", range, 80.0f));
     range = {-8.0f, 8.0f};

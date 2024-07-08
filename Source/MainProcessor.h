@@ -53,7 +53,8 @@ private:
     std::unique_ptr<op::TransferFunctionProcessor<float>> transferFunctionProcessor;
     juce::dsp::Oversampling<float> overSampler;
 
-    juce::dsp::ProcessorChain<juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, 
+    juce::dsp::ProcessorChain<juce::dsp::Gain<float>,
+                              juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, 
                                                              juce::dsp::IIR::Coefficients<float>>,
                               juce::dsp::Compressor<float>> inputChain;
     
