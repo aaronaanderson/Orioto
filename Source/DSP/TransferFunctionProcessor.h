@@ -66,6 +66,13 @@ private:
             updateTransferFunction();
         }
     }
+
+    void valueTreeParentChanged (juce::ValueTree& tree) override 
+    {
+        juce::ignoreUnused (tree);
+        updateTransferFunction();
+    }
+
 };
 
 template <typename FloatType>
