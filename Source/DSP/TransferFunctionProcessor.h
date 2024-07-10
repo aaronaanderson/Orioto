@@ -29,6 +29,7 @@ public:
         float index = normalizedToIndex (clampedValue);
         return transferFunction->get (index);
     }
+    void reset() { updateTransferFunction(); }
 private:
     juce::ValueTree state;
     static const size_t numPoints = 32 * 1;
@@ -66,13 +67,6 @@ private:
             updateTransferFunction();
         }
     }
-
-    void valueTreeParentChanged (juce::ValueTree& tree) override 
-    {
-        juce::ignoreUnused (tree);
-        updateTransferFunction();
-    }
-
 };
 
 template <typename FloatType>
@@ -87,7 +81,10 @@ public:
     {
         dryWetMix.reset (spec.sampleRate, 0.01);
     }
-    void reset() noexcept {}
+    void reset() noexcept 
+    {
+        transferFunction.reset();
+    }
     
     void setMix (float newMix)
     {

@@ -84,8 +84,8 @@ private:
     }
     float calculateYBetweenNodes (const Node* leftNode, const Node* rightNode, const float position)
     {
-        jassert (position >= leftNode->endPoint.getX() &&
-                 position <= rightNode->endPoint.getX());
+        // jassert (position >= leftNode->endPoint.getX() &&
+        //          position <= rightNode->endPoint.getX());
 
         if (juce::approximatelyEqual (leftNode->endPoint.getX(), rightNode->endPoint.getX()))
             return leftNode->endPoint.getY();

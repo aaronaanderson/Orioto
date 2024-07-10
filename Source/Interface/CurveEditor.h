@@ -229,7 +229,7 @@ private:
     }
 };
 class Curve : public juce::Component, 
-              private DraggablePoint::Listener,
+              private DraggablePoint::Listener, 
               private juce::ValueTree::Listener
 {
 public:
@@ -243,7 +243,7 @@ public:
         
         for (auto* n : nodes)
             n->addListener (this);
-
+        
         state.addListener (this);
     }
     void paint (juce::Graphics& g) override
@@ -382,11 +382,11 @@ private:
         }
     }
     void onDragEnd() override { repaint(); }
-    void valueTreeParentChanged (juce::ValueTree& treeWhoseParentHasChanged) override 
+    void valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,
+                                   const juce::Identifier& property) override 
     {
-        juce::ignoreUnused (treeWhoseParentHasChanged);
-        std::cout << "Parent changed" << std::endl;
-        std::cout << state.toXmlString() << std::endl;
+        juce::ignoreUnused (treeWhosePropertyHasChanged, property);
+        repaint();
     }
 };
 }

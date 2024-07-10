@@ -102,5 +102,27 @@ private:
     double phaseIncrement = 0.001;
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    void syncValueTreeNotifyListeners (const juce::ValueTree& source, juce::ValueTree& destination)
+    {
+        const int numProperties = source.getNumProperties();
+        for (int i = 0; i < numProperties; ++i)
+        {
+            auto propertyName = source.getPropertyName (i);
+    
+            if (destination.hasProperty (propertyName))
+                destination.setProperty (propertyName, source.getProperty (propertyName), nullptr);
+        }
+    
+        // for (const auto& child : source)
+        for (int i = 0; i < source.getNumChildren(); i++)
+        {
+            auto child = source.getChild (i);
+            // auto childType = source.getChild (i).getType();
+            auto childInDestination = destination.getChild (i);
+    
+            if (childInDestination.isValid())
+                syncValueTreeNotifyListeners (child, childInDestination);
+        }       
+    }
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainProcessor)
 };
