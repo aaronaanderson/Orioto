@@ -264,7 +264,8 @@ public:
         outputLevelPanel (vts)
     {
         viewPort.setViewedComponent(new InnerControlPannel (vts));
-        viewPort.setScrollBarThickness (12);
+        viewPort.setScrollBarThickness (10);
+        viewPort.setScrollBarsShown (true, false);
         addAndMakeVisible (viewPort);
         addAndMakeVisible (outputLevelPanel);
     }
@@ -278,9 +279,7 @@ public:
         vc->setBounds (innerViewBounds);
     }
 private:
-
     juce::Viewport viewPort;
     OutputLevelPanel outputLevelPanel;
 };
-
 }

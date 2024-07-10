@@ -304,7 +304,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MainProcessor::createParamet
     range = {0.25, 4.0f}; range.setSkewForCentre (1.0f);
     layout.add (std::make_unique<op::RangedFloatParameter> ("High Shelf Q", range, 1.0f));
 
-    range = {5000.0f, 20000.0f}; range.setSkewForCentre (10000.0f);
+    range = {1250.0f, 20000.0f}; range.setSkewForCentre (5000.0f);
     layout.add (std::make_unique<op::RangedFloatParameter> ("Low Pass Frequency", range, 18500.0f));
 
     range = {-30.0f, 0.0f};
