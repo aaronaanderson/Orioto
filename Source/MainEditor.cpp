@@ -4,6 +4,7 @@
 //==============================================================================
 MainEditor::MainEditor (MainProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p), 
+      undoManager (processorRef.getUndoManager()),
       curveEditor (processorRef.getState().getChildWithName (id::CURVE), processorRef.getUndoManager()),
       sineView (processorRef.getState().getChildWithName (id::CURVE)), 
       controlPanel (processorRef.getValueTreeState())
@@ -15,6 +16,9 @@ MainEditor::MainEditor (MainProcessor& p)
     addAndMakeVisible (curveEditor);
     addAndMakeVisible (sineView);
     addAndMakeVisible (controlPanel);
+
+    setWantsKeyboardFocus (true);
+    addKeyListener (this);
 
     setResizable (true, true);
     setResizeLimits (300, 200, 2400, 1600);
@@ -42,4 +46,19 @@ void MainEditor::resized()
     curveEditor.setBounds (viewBounds.reduced (2));
 
     controlPanel.setBounds (controlBounds);
+}
+
+bool MainEditor::keyPressed (const juce::KeyPress& key,
+                             juce::Component* originatingComponent)
+{
+    juce::ignoreUnused (originatingComponent);
+    if(key.getModifiers().isCommandDown() && (key.getKeyCode() == 'z' || key.getKeyCode() == 'Z'))
+    {
+        undoManager.undo();
+    } else if(key.getModifiers().isCommandDown() && ((key.getKeyCode() == 'y' || key.getKeyCode() == 'Y') ||
+                                                     (key.getKeyCode() == 'r' || key.getKeyCode() == 'R')))
+    {
+        undoManager.redo();
+    }
+    return false;
 }

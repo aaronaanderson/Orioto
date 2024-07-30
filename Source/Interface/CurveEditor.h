@@ -37,7 +37,11 @@ public:
         listener->isDragging = true;
         listener->onDrag (this, event);
     }
-    void mouseDown (const juce::MouseEvent& event) override { juce::ignoreUnused (event); }
+    void mouseDown (const juce::MouseEvent& event) override 
+    { 
+        juce::ignoreUnused (event); 
+        undoManager.beginNewTransaction ("Point Dragged");
+    }
     void mouseUp (const juce::MouseEvent& event) override 
     {
         juce::ignoreUnused (event);

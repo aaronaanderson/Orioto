@@ -7,7 +7,8 @@
 #include "Interface/ControlPanel.h"
 
 //==============================================================================
-class MainEditor final : public juce::AudioProcessorEditor
+class MainEditor final : public juce::AudioProcessorEditor,
+                         private juce::KeyListener
 {
 public:
     explicit MainEditor (MainProcessor&);
@@ -20,9 +21,13 @@ public:
 private:
     MainProcessor& processorRef;
     OriotoLookAndFeel lookAndFeel;
+    juce::UndoManager& undoManager;
 
     oi::Curve curveEditor;
     oi::SineView sineView;
     oi::ControlPanel controlPanel;
+
+    bool keyPressed (const juce::KeyPress& key,
+                     juce::Component* originatingComponent) override;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainEditor)
 };
