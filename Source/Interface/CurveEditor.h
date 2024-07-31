@@ -237,11 +237,11 @@ class Curve : public juce::Component,
               private juce::ValueTree::Listener
 {
 public:
-    Curve (juce::ValueTree curveBranch, juce::UndoManager& um) 
-      : state (curveBranch), 
+    Curve (juce::ValueTree activeCurveBranch, juce::UndoManager& um) 
+      : state (activeCurveBranch), 
         undoManager (um)
     {
-        jassert (state.getType() == id::CURVE);
+        jassert (state.getType() == id::ACTIVE_CURVE);
         for (int i = 0; i < state.getNumChildren(); i++)
             addAndMakeVisible (nodes.add (new Node (state.getChild (i), undoManager)));
         
@@ -415,10 +415,10 @@ private:
 class CurveEditor : public juce::Component 
 {
 public:
-    CurveEditor (juce::ValueTree curveBranch, juce::UndoManager& um)
-      : curve (curveBranch, um)
+    CurveEditor (juce::ValueTree activeCurveBranch, juce::UndoManager& um)
+      : curve (activeCurveBranch, um)
     {
-        jassert (curveBranch.getType() == id::CURVE);
+        jassert (activeCurveBranch.getType() == id::ACTIVE_CURVE);
         addAndMakeVisible (header);
         addAndMakeVisible (curve);
     }

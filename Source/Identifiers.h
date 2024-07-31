@@ -13,5 +13,9 @@ static const juce::Identifier y = "y";
 static const juce::Identifier x = "x";
 
 static const juce::Identifier CURVE = "CURVE";
+static const juce::Identifier ACTIVE_CURVE = "ACTIVE_CURVE";
+static const juce::Identifier presetIndex = "presetIndex";
+static const juce::Identifier PRESETS = "PRESETS";
+static const juce::Identifier name = "name";
 
 }

@@ -18,7 +18,7 @@ MainProcessor::MainProcessor()
       overSampler (2, 3, juce::dsp::Oversampling<float>::FilterType::filterHalfBandPolyphaseIIR)
 {
     valueTreeState.state.addChild (CurveBranch::create(), -1, nullptr);
-    transferFunctionProcessor = std::make_unique<op::TransferFunctionProcessor<float>> (getState().getChildWithName (id::CURVE));
+    transferFunctionProcessor = std::make_unique<op::TransferFunctionProcessor<float>> (getState().getChildWithName (id::CURVE).getChildWithName (id::ACTIVE_CURVE));
 }
 
 MainProcessor::~MainProcessor()
@@ -258,9 +258,9 @@ void MainProcessor::setStateInformation (const void* data, int sizeInBytes)
     // if (xmlState.get() != nullptr)
     //     if (xmlState->hasTagName (valueTreeState.state.getType()))
     //         valueTreeState.replaceState (juce::ValueTree::fromXml (*xmlState));
-    if (xmlState.get() != nullptr)
-        if (xmlState->hasTagName (valueTreeState.state.getType()))
-            syncValueTreeNotifyListeners (juce::ValueTree::fromXml (*xmlState), valueTreeState.state);
+    // if (xmlState.get() != nullptr)
+    //     if (xmlState->hasTagName (valueTreeState.state.getType()))
+    //         syncValueTreeNotifyListeners (juce::ValueTree::fromXml (*xmlState), valueTreeState.state);
 }
 
 //==============================================================================

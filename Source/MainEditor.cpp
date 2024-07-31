@@ -5,8 +5,8 @@
 MainEditor::MainEditor (MainProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p), 
       undoManager (processorRef.getUndoManager()),
-      curveEditor (processorRef.getState().getChildWithName (id::CURVE), processorRef.getUndoManager()),
-      sineView (processorRef.getState().getChildWithName (id::CURVE)), 
+      curveEditor (processorRef.getState().getChildWithName (id::CURVE).getChildWithName (id::ACTIVE_CURVE), processorRef.getUndoManager()),
+      sineView (processorRef.getState().getChildWithName (id::CURVE).getChildWithName (id::ACTIVE_CURVE)), 
       controlPanel (processorRef.getValueTreeState())
 {
     juce::ignoreUnused (processorRef);

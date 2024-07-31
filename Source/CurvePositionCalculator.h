@@ -12,10 +12,10 @@ struct Node
 class CurvePositionCalculator
 {
 public:
-    CurvePositionCalculator (juce::ValueTree curveBranch)
-      : state (curveBranch)
+    CurvePositionCalculator (juce::ValueTree activeCurveBranch)
+      : state (activeCurveBranch)
     {
-        jassert (state.getType() == id::CURVE);
+        jassert (state.getType() == id::ACTIVE_CURVE);
         initializeState();
     }
     float getYatX (const float x)
@@ -24,7 +24,7 @@ public:
     }
     void reset (juce::ValueTree curveBranch)
     {
-        jassert (curveBranch.getType() == id::CURVE);
+        jassert (curveBranch.getType() == id::ACTIVE_CURVE);
         state = curveBranch;
         initializeState();
     }

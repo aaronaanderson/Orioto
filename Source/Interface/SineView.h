@@ -15,7 +15,7 @@ public:
     SineView (juce::ValueTree curveBranch)
       : state (curveBranch)
     {
-        jassert (state.getType() == id::CURVE);
+        jassert (state.getType() == id::ACTIVE_CURVE);
         state.addListener (this);
     }
     void paint (juce::Graphics& g) override

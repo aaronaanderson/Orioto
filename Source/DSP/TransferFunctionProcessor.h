@@ -11,11 +11,11 @@ namespace op
 class TransferFunction : private juce::ValueTree::Listener
 {
 public:
-    TransferFunction (juce::ValueTree curveBranch)
-      : state (curveBranch), 
-        cpc (curveBranch)
+    TransferFunction (juce::ValueTree activeCurveBranch)
+      : state (activeCurveBranch), 
+        cpc (activeCurveBranch)
     {
-        jassert (state.getType() == id::CURVE);
+        jassert (state.getType() == id::ACTIVE_CURVE);
         state.addListener (this);
         transferFunction.reset (new juce::dsp::LookupTable<float>());
         workingBuffer.reset (new juce::dsp::LookupTable<float>());
@@ -73,8 +73,8 @@ template <typename FloatType>
 class TransferFunctionProcessor
 {
 public:
-    TransferFunctionProcessor (juce::ValueTree curveBranch)
-      : transferFunction (curveBranch)
+    TransferFunctionProcessor (juce::ValueTree activeCurveBranch)
+      : transferFunction (activeCurveBranch)
     {}
 
     void prepare (const juce::dsp::ProcessSpec& spec) 

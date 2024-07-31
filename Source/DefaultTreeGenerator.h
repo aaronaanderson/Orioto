@@ -35,9 +35,20 @@ struct CurveBranch
     static const juce::ValueTree create()
     {
         juce::ValueTree curveBranch (id::CURVE);
-        curveBranch.addChild (NodeBranch::create ({-1.0f, -1.0f}, {-0.3333333333f, -0.3333333333f}, {0.3333333333f, 0.3333333333f}), -1, nullptr);
-        curveBranch.addChild (NodeBranch::create ({0.0f, 0.0f}, {-0.3333333333f, -0.3333333333f}, {0.3333333333f, 0.3333333333f}), -1, nullptr);
-        curveBranch.addChild (NodeBranch::create ({1.0f, 1.0f}, {-0.3333333333f, -0.3333333333f}, {0.3333333333f, 0.3333333333f}), -1, nullptr);
+
+        juce::ValueTree activeBranch (id::ACTIVE_CURVE);
+        activeBranch.addChild (NodeBranch::create ({-1.0f, -1.0f}, {-0.3333333333f, -0.3333333333f}, {0.3333333333f, 0.3333333333f}), -1, nullptr);
+        activeBranch.addChild (NodeBranch::create ({0.0f, 0.0f}, {-0.3333333333f, -0.3333333333f}, {0.3333333333f, 0.3333333333f}), -1, nullptr);
+        activeBranch.addChild (NodeBranch::create ({1.0f, 1.0f}, {-0.3333333333f, -0.3333333333f}, {0.3333333333f, 0.3333333333f}), -1, nullptr);
+        activeBranch.setProperty (id::presetIndex, 0, nullptr);
+        curveBranch.addChild (activeBranch, -1, nullptr);
+
+        juce::ValueTree presetBranch (id::PRESETS);
+        presetBranch.setProperty (id::name, "Bypass", nullptr);
+        presetBranch.addChild (NodeBranch::create ({-1.0f, -1.0f}, {-0.3333333333f, -0.3333333333f}, {0.3333333333f, 0.3333333333f}), -1, nullptr);
+        presetBranch.addChild (NodeBranch::create ({0.0f, 0.0f}, {-0.3333333333f, -0.3333333333f}, {0.3333333333f, 0.3333333333f}), -1, nullptr);
+        presetBranch.addChild (NodeBranch::create ({1.0f, 1.0f}, {-0.3333333333f, -0.3333333333f}, {0.3333333333f, 0.3333333333f}), -1, nullptr);
+        curveBranch.addChild (presetBranch, -1, nullptr);
 
         return curveBranch;
     }
