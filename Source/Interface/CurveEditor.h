@@ -111,7 +111,7 @@ public:
         auto laf = dynamic_cast<OriotoLookAndFeel*> (&getLookAndFeel());
         jassert (laf != nullptr);
 
-        g.setColour (laf->getAccentColour());
+        g.setColour (laf->getAccentColour().darker (0.5f));
         auto b = getLocalBounds();
         g.fillEllipse (b.toFloat());
 
@@ -168,13 +168,13 @@ public:
         auto laf = dynamic_cast<OriotoLookAndFeel*> (&getLookAndFeel());
         jassert (laf != nullptr);
 
-        g.setColour (laf->getAccentColour());
+        g.setColour (laf->getAccentColour().darker (0.5f));
         juce::Line<float> toControlPointOne (scaleToBounds (endPoint.getPosition() + controlPointOne.getPosition(), getLocalBounds()), 
                                              scaleToBounds (endPoint.getPosition(), getLocalBounds()));
-        g.drawLine (toControlPointOne, 1.0f);  
+        g.drawLine (toControlPointOne, 2.0f);  
         juce::Line<float> toControlPointTwo (scaleToBounds (endPoint.getPosition() + controlPointTwo.getPosition(), getLocalBounds()), 
                                              scaleToBounds (endPoint.getPosition(), getLocalBounds()));
-        g.drawLine (toControlPointTwo, 1.0f);
+        g.drawLine (toControlPointTwo, 2.0f);
 
     }
     bool hitTest(int x, int y) override 
@@ -269,7 +269,7 @@ public:
                                scaleToBounds (nodes[i]->getEndPoint().getPosition(), getLocalBounds()));
             previousControlPoint = scaleToBounds (nodes[i]->getEndPoint().getPosition() + nodes[i]->getControlPointTwo().getPosition(), getLocalBounds());
         }
-        g.strokePath (curvePath.createPathWithRoundedCorners (2.0f), juce::PathStrokeType (2.0f));
+        g.strokePath (curvePath.createPathWithRoundedCorners (2.0f), juce::PathStrokeType (4.0f));
 
         if (isDragging)
         {
@@ -392,5 +392,45 @@ private:
         juce::ignoreUnused (treeWhosePropertyHasChanged, property);
         repaint();
     }
+};
+
+class CurveHeader : public juce::Component
+{
+public:
+    CurveHeader()
+    {
+        addAndMakeVisible (presets);
+    }
+    void resized() override 
+    {
+        auto b = getLocalBounds();
+        b.removeFromBottom (2);
+        int unitWidth = static_cast<int> (b.getWidth() / 3.0f);
+        presets.setBounds (b.removeFromLeft (unitWidth));
+    }
+private:
+    juce::ComboBox presets;
+};
+
+class CurveEditor : public juce::Component 
+{
+public:
+    CurveEditor (juce::ValueTree curveBranch, juce::UndoManager& um)
+      : curve (curveBranch, um)
+    {
+        jassert (curveBranch.getType() == id::CURVE);
+        addAndMakeVisible (header);
+        addAndMakeVisible (curve);
+    }
+    void resized() override 
+    {
+        auto b = getLocalBounds();
+        header.setBounds (b.removeFromTop (30));
+        curve.setBounds (b);
+    }
+
+private:
+    CurveHeader header;
+    Curve curve;
 };
 }

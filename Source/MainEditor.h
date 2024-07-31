@@ -23,7 +23,7 @@ private:
     OriotoLookAndFeel lookAndFeel;
     juce::UndoManager& undoManager;
 
-    oi::Curve curveEditor;
+    oi::CurveEditor curveEditor;
     oi::SineView sineView;
     oi::ControlPanel controlPanel;
 
