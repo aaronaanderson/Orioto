@@ -216,19 +216,5 @@ public:
     void drawCornerResizer (juce::Graphics& /*g*/, int /*w*/, int /*h*/, bool /*isMouseOver*/, bool /*isMouseDragging*/) override
     {
     }
-void drawScrollbar (juce::Graphics& g, juce::ScrollBar& scrollbar, int x, int y, int width, int height,
-                    bool isScrollbarVertical, int thumbStartPosition, int thumbSize, bool isMouseOver, [[maybe_unused]] bool isMouseDown) override
-{
-    juce::Rectangle<int> thumbBounds;
-
-    if (isScrollbarVertical)
-        thumbBounds = { x, thumbStartPosition, width, thumbSize };
-    else
-        thumbBounds = { thumbStartPosition, y, thumbSize, height };
-
-    auto c = scrollbar.findColour (juce::ScrollBar::ColourIds::thumbColourId);
-    g.setColour (isMouseOver ? c.brighter (0.25f) : juce::Colours::transparentBlack);
-    g.fillRoundedRectangle (thumbBounds.reduced (1).toFloat(), 4.0f);
-}
 };
 
