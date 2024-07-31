@@ -22,7 +22,10 @@ public:
         g.setColour (laf->getBaseColour().brighter (2.5f));
         juce::Rectangle<float> b = {static_cast<float> (getLocalBounds().getWidth()), 
                                     static_cast<float> (getLocalBounds().getHeight() * 0.2)};
-        g.drawText (name, b, juce::Justification::left);
+        g.drawText (" " + name, b, juce::Justification::left);
+
+        g.setColour (laf->getBackgroundColour().darker (1.0f));
+        g.drawRect (getLocalBounds(), 2);
     }
     juce::Rectangle<int> getAdjustedBounds()
     {
@@ -238,14 +241,15 @@ public:
     void resized()
     {
         auto b = getLocalBounds();
+        b.removeFromRight (10);
         auto unitHeight = b.getHeight() / 7;
-        inputGainPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
-        lowShelfPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
-        inputCompressionPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
-        blendPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
-        highShelfPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
-        lowPassPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
-        outputCompressionPanel.setBounds (b.removeFromTop (unitHeight).reduced (2));
+        inputGainPanel.setBounds (b.removeFromTop (unitHeight).reduced (0));
+        lowShelfPanel.setBounds (b.removeFromTop (unitHeight).reduced (0));
+        inputCompressionPanel.setBounds (b.removeFromTop (unitHeight).reduced (0));
+        blendPanel.setBounds (b.removeFromTop (unitHeight).reduced (0));
+        highShelfPanel.setBounds (b.removeFromTop (unitHeight).reduced (0));
+        lowPassPanel.setBounds (b.removeFromTop (unitHeight).reduced (0));
+        outputCompressionPanel.setBounds (b.removeFromTop (unitHeight).reduced (0));
     }
 private:
     InputGainPanel inputGainPanel;
