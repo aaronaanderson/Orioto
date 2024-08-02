@@ -242,13 +242,8 @@ public:
         undoManager (um)
     {
         jassert (state.getType() == id::ACTIVE_CURVE);
-        for (int i = 0; i < state.getNumChildren(); i++)
-            addAndMakeVisible (nodes.add (new Node (state.getChild (i), undoManager)));
-        
-        for (auto* n : nodes)
-            n->addListener (this);
-        
         state.addListener (this);
+        resetNodes();
     }
     void paint (juce::Graphics& g) override
     {
@@ -386,27 +381,62 @@ private:
         }
     }
     void onDragEnd() override { repaint(); }
-    void valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,
+    void resetNodes()
+    {
+        removeAllChildren();
+        nodes.clear();
+
+        for (int i = 0; i < state.getNumChildren(); i++)
+            addAndMakeVisible (nodes.add (new Node (state.getChild (i), undoManager)));
+        
+        for (auto* n : nodes)
+            n->addListener (this);
+    }
+    void valueTreePropertyChanged (juce::ValueTree& tree,
                                    const juce::Identifier& property) override 
     {
-        juce::ignoreUnused (treeWhosePropertyHasChanged, property);
-        repaint();
+        juce::ignoreUnused (tree, property);
+
+        if (property == id::presetIndex)
+        {
+            copyPresetToActive (static_cast<int> (tree.getProperty (property)));
+            resetNodes();
+        }
+        repaint();resized();
+    }
+
+    void copyPresetToActive (int presetIndex)
+    {
+        state.removeAllChildren(nullptr);
+        auto presetBranch = state.getParent().getChildWithName (id::PRESETS);
+        auto curveBranch = presetBranch.getChild (presetIndex);
+        std::cout << curveBranch.toXmlString();
+        std::cout << curveBranch.getNumChildren();
+        for (int i = 0; i < curveBranch.getNumChildren(); i++)
+            state.addChild (curveBranch.getChild (i).createCopy(), -1, nullptr);
+
+        // std::cout << state.toXmlString();
     }
 };
 
-class CurveHeader : public juce::Component
+class CurveHeader : public juce::Component, 
+                    private juce::ValueTree::Listener
 {
 public:
-    CurveHeader(juce::ValueTree curveBranch)
+    CurveHeader(juce::ValueTree curveBranch, juce::UndoManager& um)
       : presetBranch (curveBranch.getChildWithName (id::PRESETS)),
-        activeCurveBranch (curveBranch.getChildWithName (id::ACTIVE_CURVE)) 
+        activeCurveBranch (curveBranch.getChildWithName (id::ACTIVE_CURVE)), 
+        undoManager (um)
     {
         jassert (curveBranch.getType() == id::CURVE);
+
+        presetBranch.addListener (this);
 
         for (int i = 0; i < presetBranch.getNumChildren(); i++)
             presets.addItem (presetBranch.getChild (i).getProperty (id::name).toString(), i + 1);
         
         presets.setSelectedItemIndex (static_cast<int> (activeCurveBranch.getProperty (id::presetIndex)));
+        presets.onChange = [&](){ activeCurveBranch.setProperty (id::presetIndex, presets.getSelectedItemIndex(), &undoManager); };
         addAndMakeVisible (presets);
 
         saveButton.onClick = [&]()
@@ -435,7 +465,8 @@ public:
 private:
     juce::ValueTree presetBranch;
     juce::ValueTree activeCurveBranch;
-    
+    juce::UndoManager& undoManager;
+
     juce::ComboBox presets;
     juce::TextButton saveButton {"New"};
 
@@ -444,9 +475,51 @@ private:
         auto tlc = getParentComponent()->getParentComponent();
         tlc->removeChildComponent (newCurveWindow.get());
     }
+    static const juce::ValueTree createNodeBranch (juce::Point<float> endPoint, 
+                                                   juce::Point<float> controlOne, 
+                                                   juce::Point<float> controlTwo)
+    {
+        juce::ValueTree nodeBranch (id::NODE);
+        
+        juce::ValueTree endPointBranch (id::endPoint);
+        endPointBranch.setProperty (id::x, endPoint.x, nullptr);
+        endPointBranch.setProperty (id::y, endPoint.y, nullptr);
+        nodeBranch.addChild (endPointBranch, -1, nullptr);
+
+        juce::ValueTree controlOneBranch (id::controlPoint1);
+        controlOneBranch.setProperty (id::x, controlOne.x, nullptr);
+        controlOneBranch.setProperty (id::y, controlOne.y, nullptr);
+        nodeBranch.addChild (controlOneBranch, -1, nullptr);
+
+        juce::ValueTree controlTwoBranch (id::controlPoint2);
+        controlTwoBranch.setProperty (id::x, controlTwo.x, nullptr);
+        controlTwoBranch.setProperty (id::y, controlTwo.y, nullptr);
+        nodeBranch.addChild (controlTwoBranch, -1, nullptr);
+        return nodeBranch;
+    }
+    static const juce::ValueTree generateBypassCurve (int numPoints)
+    {
+        auto curveBranch = juce::ValueTree (id::CURVE);
+        
+        float currentPosition = -1.0f;
+        float endPointGap = 2.0f / static_cast<float> (numPoints - 1);
+        float controlPointGap = endPointGap / 3.0f;
+
+        for (int i = 0; i < numPoints; i++)
+        {
+            curveBranch.addChild (createNodeBranch ({currentPosition, currentPosition},
+                                                    {-controlPointGap, -controlPointGap},
+                                                    {controlPointGap, controlPointGap}), -1, nullptr);
+            currentPosition += endPointGap;
+        }
+        return curveBranch;
+    }
     void generateNewCurve (juce::String name, int numPoints)
     {
        juce::ignoreUnused (name, numPoints);
+       auto newTree = generateBypassCurve (numPoints);
+       newTree.setProperty (id::name, name, nullptr);
+       presetBranch.addChild (newTree, -1, nullptr);
     }
     struct NewCurveWindow : public juce::DocumentWindow
     {
@@ -458,7 +531,6 @@ private:
 
             numPoints.setSliderStyle (juce::Slider::SliderStyle::IncDecButtons);
             numPoints.setNumDecimalPlacesToDisplay (0);
-            numPoints.setMinAndMaxValues (3.0, 20.0, juce::dontSendNotification);
             numPoints.setRange ({3.0, 20.0}, 1.0);
             numPoints.setTextBoxStyle (juce::Slider::TextEntryBoxPosition::TextBoxLeft, true, 40, 20);
             numPoints.setIncDecButtonsMode (juce::Slider::IncDecButtonMode::incDecButtonsDraggable_Vertical);
@@ -468,7 +540,11 @@ private:
             nameEditor.setText ("CurveName");
             addAndMakeVisible (&nameEditor);
             
-            confirmButton.onClick = [&]() { curveHeaderComponent->generateNewCurve (nameEditor.getText(), static_cast<int> (numPoints.getValue())); };
+            confirmButton.onClick = [&]() 
+                { 
+                    curveHeaderComponent->generateNewCurve (nameEditor.getText(), static_cast<int> (numPoints.getValue())); 
+                    curveHeaderComponent->closeNewCurveWindow();
+                };
             addAndMakeVisible (&confirmButton);
         }
         void resized() override 
@@ -489,6 +565,22 @@ private:
     };
     std::unique_ptr<juce::DocumentWindow> newCurveWindow;
 
+    void valueTreeChildAdded (juce::ValueTree& parentTree,
+                              juce::ValueTree& childWhichHasBeenAdded) override
+    {
+        if (parentTree.getType() == id::PRESETS)
+        {
+            presets.clear();
+            for (int i = 0; i < presetBranch.getNumChildren(); i++)
+            {
+                auto name = presetBranch.getChild (i).getProperty (id::name).toString();
+                presets.addItem (name, i + 1);
+                if (name == childWhichHasBeenAdded.getProperty (id::name).toString())
+                    presets.setSelectedItemIndex (i);
+            }
+        }
+    }
+
 };
 
 class CurveEditor : public juce::Component 
@@ -496,7 +588,7 @@ class CurveEditor : public juce::Component
 public:
     CurveEditor (juce::ValueTree curveBranch, juce::UndoManager& um)
       : curve (curveBranch.getChildWithName (id::ACTIVE_CURVE), um), 
-        header (curveBranch)
+        header (curveBranch, um)
     {
         jassert (curveBranch.getType() == id::CURVE);
         addAndMakeVisible (header);
