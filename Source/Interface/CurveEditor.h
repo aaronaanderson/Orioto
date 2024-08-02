@@ -397,9 +397,32 @@ private:
 class CurveHeader : public juce::Component
 {
 public:
-    CurveHeader()
+    CurveHeader(juce::ValueTree curveBranch)
+      : presetBranch (curveBranch.getChildWithName (id::PRESETS)),
+        activeCurveBranch (curveBranch.getChildWithName (id::ACTIVE_CURVE)) 
     {
+        jassert (curveBranch.getType() == id::CURVE);
+
+        for (int i = 0; i < presetBranch.getNumChildren(); i++)
+            presets.addItem (presetBranch.getChild (i).getProperty (id::name).toString(), i + 1);
+        
+        presets.setSelectedItemIndex (static_cast<int> (activeCurveBranch.getProperty (id::presetIndex)));
         addAndMakeVisible (presets);
+
+        saveButton.onClick = [&]()
+            { 
+                auto laf = dynamic_cast<OriotoLookAndFeel*> (&getLookAndFeel());
+                newCurveWindow.reset (new NewCurveWindow (this, 
+                                                          "New Curve", 
+                                                          laf->getBackgroundColour(), 
+                                                          juce::DocumentWindow::TitleBarButtons::closeButton)); 
+                auto* tlc = getParentComponent()->getParentComponent();
+                tlc->addAndMakeVisible (newCurveWindow.get());
+                juce::Rectangle<int> bounds = {300, 60};
+                newCurveWindow->setBounds (bounds.withCentre (tlc->getBounds().getCentre()));
+                newCurveWindow->toFront(true);
+            };
+        addAndMakeVisible (saveButton);
     }
     void resized() override 
     {
@@ -407,18 +430,75 @@ public:
         b.removeFromBottom (2);
         int unitWidth = static_cast<int> (b.getWidth() / 3.0f);
         presets.setBounds (b.removeFromLeft (unitWidth));
+        saveButton.setBounds (b.removeFromLeft (unitWidth / 3));
     }
 private:
+    juce::ValueTree presetBranch;
+    juce::ValueTree activeCurveBranch;
+    
     juce::ComboBox presets;
+    juce::TextButton saveButton {"New"};
+
+    void closeNewCurveWindow()
+    {
+        auto tlc = getParentComponent()->getParentComponent();
+        tlc->removeChildComponent (newCurveWindow.get());
+    }
+    void generateNewCurve (juce::String name, int numPoints)
+    {
+       juce::ignoreUnused (name, numPoints);
+    }
+    struct NewCurveWindow : public juce::DocumentWindow
+    {
+        NewCurveWindow(CurveHeader* ch, juce::String name, juce::Colour colour, int requiredButtons)
+          : juce::DocumentWindow (name, colour, requiredButtons),
+            curveHeaderComponent (ch)
+        {
+            setResizeLimits (4, 4, 32768, 32768);
+
+            numPoints.setSliderStyle (juce::Slider::SliderStyle::IncDecButtons);
+            numPoints.setNumDecimalPlacesToDisplay (0);
+            numPoints.setMinAndMaxValues (3.0, 20.0, juce::dontSendNotification);
+            numPoints.setRange ({3.0, 20.0}, 1.0);
+            numPoints.setTextBoxStyle (juce::Slider::TextEntryBoxPosition::TextBoxLeft, true, 40, 20);
+            numPoints.setIncDecButtonsMode (juce::Slider::IncDecButtonMode::incDecButtonsDraggable_Vertical);
+            numPoints.setHelpText ("Number of Points");
+            addAndMakeVisible (&numPoints);
+            
+            nameEditor.setText ("CurveName");
+            addAndMakeVisible (&nameEditor);
+            
+            confirmButton.onClick = [&]() { curveHeaderComponent->generateNewCurve (nameEditor.getText(), static_cast<int> (numPoints.getValue())); };
+            addAndMakeVisible (&confirmButton);
+        }
+        void resized() override 
+        {
+            juce::DocumentWindow::resized();
+            auto b = getLocalBounds();
+            b.removeFromTop (getTitleBarHeight());
+            numPoints.setBounds (b.removeFromLeft (100).reduced (2));
+            nameEditor.setBounds (b.removeFromLeft (100).reduced (2));
+            confirmButton.setBounds (b.removeFromLeft (100).reduced (2));
+        }
+        void closeButtonPressed() override { curveHeaderComponent->closeNewCurveWindow(); };
+        
+        CurveHeader* curveHeaderComponent = nullptr;
+        juce::Slider numPoints;
+        juce::TextEditor nameEditor;
+        juce::TextButton confirmButton {"Confirm"};
+    };
+    std::unique_ptr<juce::DocumentWindow> newCurveWindow;
+
 };
 
 class CurveEditor : public juce::Component 
 {
 public:
-    CurveEditor (juce::ValueTree activeCurveBranch, juce::UndoManager& um)
-      : curve (activeCurveBranch, um)
+    CurveEditor (juce::ValueTree curveBranch, juce::UndoManager& um)
+      : curve (curveBranch.getChildWithName (id::ACTIVE_CURVE), um), 
+        header (curveBranch)
     {
-        jassert (activeCurveBranch.getType() == id::ACTIVE_CURVE);
+        jassert (curveBranch.getType() == id::CURVE);
         addAndMakeVisible (header);
         addAndMakeVisible (curve);
     }
